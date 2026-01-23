@@ -57,8 +57,8 @@ constexpr auto vertex_processor_models = std::to_array<execution_model>({
     execution_model::geometry,
 });
 constexpr bool is_vertex_processor(execution_model model) {
-    auto map = constexpr_map::construct_const_map < vertex_processor_models, decltype([](auto d) { return d; }) >();
-    return map[model] == model;
+    auto set = constexpr_map::construct_const_set<vertex_processor_models>();
+    return set[model] == model;
 }
 
 enum class execution_mode {
