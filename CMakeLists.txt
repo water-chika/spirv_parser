@@ -9,6 +9,7 @@ add_executable(SPIRV-Parser
 target_link_libraries(SPIRV-Parser PUBLIC
     SPIRV-Headers
     win32_helper
+    constexpr_map
 )
 
 target_compile_features(SPIRV-Parser PUBLIC cxx_std_20)
