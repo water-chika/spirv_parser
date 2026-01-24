@@ -1,4 +1,4 @@
-#include <spirv/unified1/spirv.h>
+#include <spirv/unified1/spirv.hpp>
 
 #include <unordered_map>
 
@@ -28,15 +28,108 @@ static_assert(
     std::is_same_v<decltype(instruction<true>{}.result), id>
 );
 
-struct instruction_parser {
-    std::span<word> words;
+struct instruction_binary {
+    std::vector<word> words;
+    auto get_word_count() const {
+        return words[0];
+    }
+    auto get_opcode() const {
+        return static_cast<spv::Op>(words[1]);
+    }
+};
+
+struct instruction_binary_ref {
+    word* words;
     auto get_word_count() {
         return words[0];
     }
     auto get_opcode() {
-        return words[1];
+        return static_cast<spv::Op>(words[1]);
+    }
+    auto operator*() {
+        return instruction_binary{{words, words + get_word_count()}};
+    }
+    auto operator++() {
+        words = words + get_word_count();
     }
 };
+
+auto operator==(const instruction_binary_ref& lhs, const instruction_binary_ref& rhs) {
+    return lhs.words == rhs.words;
+}
+
+auto operator<=>(const instruction_binary_ref& lhs, const instruction_binary_ref& rhs) {
+    return lhs.words <=> rhs.words;
+}
+
+struct block {
+    std::span<word> words;
+    auto begin() {
+        return instruction_binary_ref{words.data()};
+    }
+    auto end() {
+        return instruction_binary_ref{words.data() + words.size()};
+    }
+};
+
+constexpr auto function_termination_instructions = std::to_array<spv::Op>({
+    spv::OpReturn,
+    spv::OpReturnValue,
+    spv::OpKill,
+    spv::OpUnreachable,
+    spv::OpTerminateInvocation,
+});
+constexpr bool is_function_termination_instruction(spv::Op op) {
+    auto set = constexpr_map::construct_const_set<function_termination_instructions>();
+    return set[op] == op;
+}
+
+constexpr auto conditional_branch_instructions = std::to_array<spv::Op>({
+    spv::OpBranchConditional,
+    spv::OpSwitch
+});
+constexpr bool is_conditional_branch_instruction(spv::Op op) {
+    auto set = constexpr_map::construct_const_set<conditional_branch_instructions>();
+    return set[op] == op;
+}
+constexpr auto branch_instructions = cpp_helper::merge(
+    std::to_array<spv::Op>({
+        spv::OpBranch,
+    }),
+    conditional_branch_instructions
+);
+constexpr bool is_branch_instruction(spv::Op op) {
+    auto set = constexpr_map::construct_const_set<branch_instructions>();
+    return set[op] == op;
+}
+
+constexpr auto block_termination_instructions = cpp_helper::merge(
+    branch_instructions,
+    function_termination_instructions
+);
+constexpr bool is_block_termination_instruction(spv::Op op) {
+    auto set = constexpr_map::construct_const_set<block_termination_instructions>();
+    return set[op] == op;
+}
+
+constexpr auto merge_instructions = std::to_array<spv::Op>({
+    spv::OpSelectionMerge,
+    spv::OpLoopMerge
+});
+constexpr bool is_merge_instruction(spv::Op op) {
+    auto set = constexpr_map::construct_const_set<merge_instructions>();
+    return set[op] == op;
+}
+
+bool is_header_block(block b) {
+    std::any_of(b.begin(), b.end(), [](auto i){ return is_merge_instruction(i.get_opcode()); });
+    for (const auto& i : b) {
+        if (is_merge_instruction(i.get_opcode())) {
+            return true;
+        }
+    }
+    return false;
+}
 
 using decoration = std::unordered_map<id, word>;
 
@@ -63,6 +156,11 @@ constexpr bool is_vertex_processor(execution_model model) {
 
 enum class execution_mode {
 
+};
+
+class control_flow_graph {
+    class node{};
+    std::vector<node> nodes;
 };
 
 auto open_spirv_file(std::filesystem::path path) {
