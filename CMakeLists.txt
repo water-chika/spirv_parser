@@ -13,3 +13,5 @@ target_link_libraries(SPIRV-Parser PUBLIC
 )
 
 target_compile_features(SPIRV-Parser PUBLIC cxx_std_20)
+
+target_compile_definitions(SPIRV-Parser PUBLIC SPV_ENABLE_UTILITY_CODE)

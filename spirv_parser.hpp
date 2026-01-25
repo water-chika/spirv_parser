@@ -31,20 +31,20 @@ static_assert(
 struct instruction_binary {
     std::vector<word> words;
     auto get_word_count() const {
-        return words[0];
+        return (words[0] >> 16) & 0xffff;
     }
     auto get_opcode() const {
-        return static_cast<spv::Op>(words[1]);
+        return static_cast<spv::Op>(words[0] & 0xffff);
     }
 };
 
 struct instruction_binary_ref {
     word* words;
     auto get_word_count() {
-        return words[0];
+        return (words[0] >> 16) & 0xffff;
     }
     auto get_opcode() {
-        return static_cast<spv::Op>(words[1]);
+        return static_cast<spv::Op>(words[0] & 0xffff);
     }
     auto operator*() {
         return instruction_binary{{words, words + get_word_count()}};
@@ -122,13 +122,18 @@ constexpr bool is_merge_instruction(spv::Op op) {
 }
 
 bool is_header_block(block b) {
-    std::any_of(b.begin(), b.end(), [](auto i){ return is_merge_instruction(i.get_opcode()); });
-    for (const auto& i : b) {
-        if (is_merge_instruction(i.get_opcode())) {
-            return true;
-        }
-    }
-    return false;
+    return std::any_of(b.begin(), b.end(), [](auto i){ return is_merge_instruction(i.get_opcode()); });
+}
+bool is_loop_header(block b) {
+    return std::any_of(b.begin(), b.end(), [](auto i){ return i.get_opcode() == spv::OpLoopMerge; });
+}
+bool is_selection_header(block b) {
+    return std::any_of(b.begin(), b.end(), [](auto i){ return i.get_opcode() == spv::OpSelectionMerge; }) &&
+            std::any_of(b.begin(), b.end(), [](auto i){ return i.get_opcode() == spv::OpBranchConditional; });
+}
+bool is_switch_header(block b) {
+    return std::any_of(b.begin(), b.end(), [](auto i){ return i.get_opcode() == spv::OpSelectionMerge; }) &&
+            std::any_of(b.begin(), b.end(), [](auto i){ return i.get_opcode() == spv::OpSwitch; });
 }
 
 using decoration = std::unordered_map<id, word>;
@@ -163,9 +168,31 @@ class control_flow_graph {
     std::vector<node> nodes;
 };
 
+struct module_binary {
+    std::span<word> words;
+    auto get_magic_number() {
+        return words[0];
+    }
+    auto get_version_number() {
+        return words[1];
+    }
+    auto get_generator_magic_number() {
+        return words[2];
+    }
+    auto get_id_bound() {
+        return words[3];
+    }
+    auto begin() {
+        return instruction_binary_ref(words.data() + 5);
+    }
+    auto end() {
+        return instruction_binary_ref(words.data() + words.size());
+    }
+};
+
 auto open_spirv_file(std::filesystem::path path) {
     auto file_mapping = win32_helper::map_file(path);
-    auto spirv_code = std::span{reinterpret_cast<const uint32_t*>(file_mapping.data()), file_mapping.size()/sizeof(uint32_t)};
+    auto spirv_code = std::span{reinterpret_cast<word*>(file_mapping.data()), file_mapping.size()/sizeof(word)};
     return std::pair{std::move(file_mapping), spirv_code};
 }
 
