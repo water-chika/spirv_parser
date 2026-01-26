@@ -159,6 +159,31 @@ constexpr bool is_vertex_processor(execution_model model) {
     return set[model] == model;
 }
 
+constexpr auto execution_model_capabilities = std::to_array<std::pair<spv::ExecutionModel,spv::Capability>>({
+    {spv::ExecutionModelVertex, spv::CapabilityShader},
+    {spv::ExecutionModelTessellationControl, spv::CapabilityTessellation},
+    {spv::ExecutionModelTessellationEvaluation, spv::CapabilityTessellation},
+    {spv::ExecutionModelGeometry, spv::CapabilityGeometry},
+    {spv::ExecutionModelFragment, spv::CapabilityShader},
+    {spv::ExecutionModelGLCompute, spv::CapabilityShader},
+    {spv::ExecutionModelKernel, spv::CapabilityKernel},
+    {spv::ExecutionModelTaskEXT, spv::CapabilityMeshShadingEXT},
+    {spv::ExecutionModelMeshEXT, spv::CapabilityMeshShadingEXT},
+});
+
+constexpr auto addressing_model_capabilities = std::to_array<std::pair<spv::AddressingModel, spv::Capability>>({
+    {spv::AddressingModelPhysical32, spv::CapabilityAddresses},
+    {spv::AddressingModelPhysical64, spv::CapabilityAddresses},
+    {spv::AddressingModelPhysicalStorageBuffer64, spv::CapabilityPhysicalStorageBufferAddresses},
+});
+
+constexpr auto memory_model_capabilities = std::to_array<std::pair<spv::MemoryModel, spv::Capability>>({
+    {spv::MemoryModelSimple, spv::CapabilityShader},
+    {spv::MemoryModelGLSL450, spv::CapabilityShader},
+    {spv::MemoryModelOpenCL, spv::CapabilityKernel},
+    {spv::MemoryModelVulkan, spv::CapabilityVulkanMemoryModel},
+});
+
 enum class execution_mode {
 
 };
@@ -188,6 +213,22 @@ struct module_binary {
     auto end() {
         return instruction_binary_ref(words.data() + words.size());
     }
+};
+
+struct module_logic {
+    std::vector<word> capabilities;
+    std::vector<word> extensions;
+    std::vector<word> extension_instruction_imports;
+    word memory_model;
+    std::vector<word> entry_points;
+    std::vector<word> execution_modes;
+    std::vector<word> strings;
+    std::vector<word> names;
+    std::vector<word> module_porcesseds;
+    std::vector<word> annotations;
+    std::vector<word> declarations;
+    std::vector<word> function_declarations;
+    std::vector<word> function_definitions;
 };
 
 auto open_spirv_file(std::filesystem::path path) {
