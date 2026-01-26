@@ -193,7 +193,13 @@ struct module_binary {
 auto open_spirv_file(std::filesystem::path path) {
     auto file_mapping = win32_helper::map_file(path);
     auto spirv_code = std::span{reinterpret_cast<word*>(file_mapping.data()), file_mapping.size()/sizeof(word)};
-    return std::pair{std::move(file_mapping), spirv_code};
+
+    auto m = spirv_parser::module_binary{ spirv_code };
+    if (m.get_magic_number() != spv::MagicNumber) {
+        throw std::runtime_error{ std::format("file magic number is {} != {}", m.get_magic_number(), spv::MagicNumber) };
+    }
+
+    return std::pair{std::move(file_mapping), m};
 }
 
 }

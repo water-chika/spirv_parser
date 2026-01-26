@@ -2,8 +2,7 @@
 #include <iostream>
 int main() {
     try {
-        auto [file_mapping, spirv_code] = spirv_parser::open_spirv_file("test.spv");
-        auto module_binary = spirv_parser::module_binary{spirv_code};
+        auto [file_mapping, module_binary] = spirv_parser::open_spirv_file("test.spv");
 
         spirv_parser::word count = 0;
         std::for_each(module_binary.begin(), module_binary.end(),
@@ -11,7 +10,7 @@ int main() {
                 ++count;
                 std::cout << spv::OpToString(i.get_opcode()) << std::endl;
             });
-        std::cout << "spirv file size(bytes):" << spirv_code.size() << std::endl;
+        std::cout << "spirv file size(bytes):" << file_mapping.size() << std::endl;
         std::cout << "instruction count: " << count << std::endl;
     }
     catch (std::exception& e) {
