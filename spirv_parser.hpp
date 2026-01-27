@@ -1,6 +1,7 @@
 #include <spirv/unified1/spirv.hpp>
 
 #include <unordered_map>
+#include <tuple>
 
 #include <win32_helper.hpp>
 #include <constexpr_map.hpp>
@@ -40,22 +41,106 @@ struct instruction_binary {
 
 struct instruction_binary_ref {
     word* words;
-    auto get_word_count() {
+    auto get_word_count() const {
         return (words[0] >> 16) & 0xffff;
     }
-    auto get_opcode() {
+    auto get_opcode() const {
         return static_cast<spv::Op>(words[0] & 0xffff);
     }
 };
+
+enum class instruction_argument {
+    none,
+    capability,
+    id,
+    execution_mode,
+    literal_string,
+    memory_model,
+    addressing_model,
+};
+
+struct instruction_encode {
+    constexpr instruction_encode() = default;
+    constexpr instruction_encode(spv::Op op, instruction_argument arg)
+    : op{op},
+      args{arg}
+    {}
+    constexpr instruction_encode(spv::Op op, instruction_argument arg0, instruction_argument arg1)
+    : op{op},
+      args{arg0, arg1}
+    {}
+    spv::Op op;
+    instruction_argument args[4];
+};
+
+constexpr auto instruction_encodes = std::to_array<instruction_encode>({
+    {spv::OpCapability, instruction_argument::capability},
+    {spv::OpExtInstImport, instruction_argument::id, instruction_argument::literal_string},
+    {spv::OpMemoryModel, instruction_argument::addressing_model, instruction_argument::memory_model},
+    //{spv::OpEntryPoint, instruction_argument::execution_model, instruction_argument::id, instruction_argument::literal_string, instruction_argument::ids},
+});
+constexpr auto get_instruction_encode(spv::Op op) {
+    constexpr auto map = constexpr_map::construct_const_map<instruction_encodes, decltype([](auto i) {return i.op; })>();
+    return map[op];
+}
+
+std::ostream& operator<<(std::ostream& out, const spv::Capability cap) {
+    return out << spv::CapabilityToString(cap);
+}
+
+std::ostream& operator<<(std::ostream& out, const spv::MemoryModel memory_model) {
+    return out << spv::MemoryModelToString(memory_model);
+}
+
+std::ostream& operator<<(std::ostream& out, const spv::AddressingModel addressing_model) {
+    return out << spv::AddressingModelToString(addressing_model);
+}
+
+std::ostream& operator<<(std::ostream& out, const instruction_binary_ref& inst) {
+    out << spv::OpToString(inst.get_opcode());
+    const auto encode = get_instruction_encode(inst.get_opcode());
+    if (encode.op != inst.get_opcode()) {
+        throw std::runtime_error{"unknow opcode"};
+    }
+    auto word = inst.words+1;
+    for (const auto& arg : encode.args) {
+        if (arg == instruction_argument::capability) {
+            out << " " << static_cast<spv::Capability>(*word);
+            ++word;
+        }
+        else if (arg == instruction_argument::literal_string) {
+            out << " " << reinterpret_cast<char*>(word);
+        }
+        else if (arg == instruction_argument::id) {
+            out << " %" << *word;
+            ++word;
+        }
+        else if (arg == instruction_argument::none) {
+            break;
+        }
+        else if (arg == instruction_argument::memory_model) {
+            out << " " << static_cast<spv::MemoryModel>(*word);
+            ++word;
+        }
+        else if (arg == instruction_argument::addressing_model) {
+            out << " " << static_cast<spv::AddressingModel>(*word);
+            ++word;
+        }
+        else {
+            out << " " << "unknown argument";
+        }
+    }
+    return out;
+}
 
 struct instruction_binary_iterator {
     word* words;
 
     auto operator*() {
-        return instruction_binary_ref{{words, words + get_word_count()}};
+        return instruction_binary_ref{{words}};
     }
     auto operator++() {
-        words = words + get_word_count();
+        words = words + (**this).get_word_count();
     }
 };
 

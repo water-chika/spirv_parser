@@ -8,7 +8,7 @@ int main() {
         std::for_each(module_binary.begin(), module_binary.end(),
             [&count](auto i){
                 ++count;
-                std::cout << spv::OpToString(i.get_opcode()) << std::endl;
+                std::cout << i << std::endl;
             });
         std::cout << "spirv file size(bytes):" << file_mapping.size() << std::endl;
         std::cout << "instruction count: " << count << std::endl;
