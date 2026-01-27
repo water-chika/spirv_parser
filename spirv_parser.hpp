@@ -46,29 +46,34 @@ struct instruction_binary_ref {
     auto get_opcode() {
         return static_cast<spv::Op>(words[0] & 0xffff);
     }
+};
+
+struct instruction_binary_iterator {
+    word* words;
+
     auto operator*() {
-        return instruction_binary{{words, words + get_word_count()}};
+        return instruction_binary_ref{{words, words + get_word_count()}};
     }
     auto operator++() {
         words = words + get_word_count();
     }
 };
 
-auto operator==(const instruction_binary_ref& lhs, const instruction_binary_ref& rhs) {
+auto operator==(const instruction_binary_iterator& lhs, const instruction_binary_iterator& rhs) {
     return lhs.words == rhs.words;
 }
 
-auto operator<=>(const instruction_binary_ref& lhs, const instruction_binary_ref& rhs) {
+auto operator<=>(const instruction_binary_iterator& lhs, const instruction_binary_iterator& rhs) {
     return lhs.words <=> rhs.words;
 }
 
 struct block {
     std::span<word> words;
     auto begin() {
-        return instruction_binary_ref{words.data()};
+        return instruction_binary_iterator{words.data()};
     }
     auto end() {
-        return instruction_binary_ref{words.data() + words.size()};
+        return instruction_binary_iterator{words.data() + words.size()};
     }
 };
 
@@ -208,10 +213,10 @@ struct module_binary {
         return words[3];
     }
     auto begin() {
-        return instruction_binary_ref(words.data() + 5);
+        return instruction_binary_iterator(words.data() + 5);
     }
     auto end() {
-        return instruction_binary_ref(words.data() + words.size());
+        return instruction_binary_iterator(words.data() + words.size());
     }
 };
 
