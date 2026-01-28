@@ -9,8 +9,23 @@
 namespace spirv_parser {
 
 using word = uint32_t;
-using id = word;
 using operand = word;
+
+struct id {
+    word value;
+};
+
+std::ostream& operator<<(std::ostream& out, id id) {
+    return out << "%" << id.value;
+}
+
+struct literal_number {
+    word value;
+};
+
+std::ostream& operator<<(std::ostream& out, literal_number number) {
+    return out << "$" << number.value;
+}
 
 template<bool HasResult=false, bool HasInstructionType=false, uint32_t OperandsSize=0>
 struct instruction {
@@ -53,21 +68,28 @@ enum class instruction_argument {
     none,
     capability,
     id,
+    ids,
+    optional_id,
     execution_mode,
     literal_string,
+    optional_literal_string,
     memory_model,
     addressing_model,
+    execution_model,
+    literals,
+    literal_number,
+    source_language,
+    decoration,
+    storage_class,
 };
 
 struct instruction_encode {
     constexpr instruction_encode() = default;
-    constexpr instruction_encode(spv::Op op, instruction_argument arg)
+    constexpr instruction_encode(spv::Op op,
+        instruction_argument arg0 = instruction_argument::none, instruction_argument arg1 = instruction_argument::none,
+        instruction_argument arg2= instruction_argument::none, instruction_argument arg3 = instruction_argument::none)
     : op{op},
-      args{arg}
-    {}
-    constexpr instruction_encode(spv::Op op, instruction_argument arg0, instruction_argument arg1)
-    : op{op},
-      args{arg0, arg1}
+      args{arg0, arg1, arg2, arg3}
     {}
     spv::Op op;
     instruction_argument args[4];
@@ -77,7 +99,17 @@ constexpr auto instruction_encodes = std::to_array<instruction_encode>({
     {spv::OpCapability, instruction_argument::capability},
     {spv::OpExtInstImport, instruction_argument::id, instruction_argument::literal_string},
     {spv::OpMemoryModel, instruction_argument::addressing_model, instruction_argument::memory_model},
-    //{spv::OpEntryPoint, instruction_argument::execution_model, instruction_argument::id, instruction_argument::literal_string, instruction_argument::ids},
+    {spv::OpEntryPoint, instruction_argument::execution_model, instruction_argument::id, instruction_argument::literal_string, instruction_argument::ids},
+    {spv::OpExecutionMode, instruction_argument::id, instruction_argument::execution_mode, instruction_argument::literals},
+    {spv::OpSource, instruction_argument::source_language, instruction_argument::literal_number, instruction_argument::optional_id, instruction_argument::optional_literal_string},
+    {spv::OpName, instruction_argument::id, instruction_argument::literal_string},
+    {spv::OpMemberName, instruction_argument::id, instruction_argument::literal_number, instruction_argument::literal_string},
+    {spv::OpDecorate, instruction_argument::id, instruction_argument::decoration, instruction_argument::literals},
+    {spv::OpMemberDecorate, instruction_argument::id, instruction_argument::literal_number, instruction_argument::decoration, instruction_argument::literals},
+    {spv::OpTypeVoid, instruction_argument::id},
+    {spv::OpTypeFunction, instruction_argument::id, instruction_argument::id, instruction_argument::ids},
+    {spv::OpTypeInt, instruction_argument::id, instruction_argument::literal_number, instruction_argument::literal_number},
+    {spv::OpTypePointer, instruction_argument::id, instruction_argument::storage_class, instruction_argument::id},
 });
 constexpr auto get_instruction_encode(spv::Op op) {
     constexpr auto map = constexpr_map::construct_const_map<instruction_encodes, decltype([](auto i) {return i.op; })>();
@@ -96,6 +128,26 @@ std::ostream& operator<<(std::ostream& out, const spv::AddressingModel addressin
     return out << spv::AddressingModelToString(addressing_model);
 }
 
+std::ostream& operator<<(std::ostream& out, const spv::ExecutionModel execution_model) {
+    return out << spv::ExecutionModelToString(execution_model);
+}
+
+std::ostream& operator<<(std::ostream& out, const spv::ExecutionMode execution_mode) {
+    return out << spv::ExecutionModeToString(execution_mode);
+}
+
+std::ostream& operator<<(std::ostream& out, const spv::SourceLanguage source_language) {
+    return out << spv::SourceLanguageToString(source_language);
+}
+
+std::ostream& operator<<(std::ostream& out, const spv::Decoration decoration) {
+    return out << spv::DecorationToString(decoration);
+}
+
+std::ostream& operator<<(std::ostream& out, const spv::StorageClass storage_class) {
+    return out << spv::StorageClassToString(storage_class);
+}
+
 std::ostream& operator<<(std::ostream& out, const instruction_binary_ref& inst) {
     out << spv::OpToString(inst.get_opcode());
     const auto encode = get_instruction_encode(inst.get_opcode());
@@ -109,11 +161,43 @@ std::ostream& operator<<(std::ostream& out, const instruction_binary_ref& inst) 
             ++word;
         }
         else if (arg == instruction_argument::literal_string) {
-            out << " " << reinterpret_cast<char*>(word);
+            auto string = std::string_view{reinterpret_cast<char*>(word)};
+            out << " " << string;
+            auto len = string.size();
+            auto string_word_count = (len+sizeof(word)-1) / sizeof(word);
+            word += string_word_count;
+        }
+        else if (arg == instruction_argument::optional_literal_string) {
+            if (word < inst.words + inst.get_word_count()) {
+                auto string = std::string_view{reinterpret_cast<char*>(word)};
+                out << " " << string;
+                auto len = string.size();
+                auto string_word_count = (len+sizeof(word)-1) / sizeof(word);
+                word += string_word_count;
+            }
+            else {
+                break;
+            }
         }
         else if (arg == instruction_argument::id) {
-            out << " %" << *word;
+            out << " " << static_cast<id>(*word);
             ++word;
+        }
+        else if (arg == instruction_argument::ids) {
+            while (word < inst.words + inst.get_word_count()) {
+                out << " " << static_cast<id>(*word);
+                ++word;
+            }
+            break;
+        }
+        else if (arg == instruction_argument::optional_id) {
+            if (word < inst.words + inst.get_word_count()) {
+                out << " " << static_cast<id>(*word);
+                ++word;
+            }
+            else {
+                break;
+            }
         }
         else if (arg == instruction_argument::none) {
             break;
@@ -126,8 +210,40 @@ std::ostream& operator<<(std::ostream& out, const instruction_binary_ref& inst) 
             out << " " << static_cast<spv::AddressingModel>(*word);
             ++word;
         }
+        else if (arg == instruction_argument::execution_model) {
+            out << " " << static_cast<spv::ExecutionModel>(*word);
+            ++word;
+        }
+                else if (arg == instruction_argument::execution_mode) {
+            out << " " << static_cast<spv::ExecutionMode>(*word);
+            ++word;
+        }
+        else if (arg == instruction_argument::literal_number) {
+            out << " " << static_cast<literal_number>(*word);
+            ++word;
+        }
+        else if (arg == instruction_argument::literals) {
+            while (word < inst.words + inst.get_word_count()) {
+                out << " " << static_cast<literal_number>(*word);
+                ++word;
+            }
+            break;
+        }
+        else if (arg == instruction_argument::source_language) {
+            out << " " << static_cast<spv::SourceLanguage>(*word);
+            ++word;
+        }
+        else if (arg == instruction_argument::decoration) {
+            out << " " << static_cast<spv::Decoration>(*word);
+            ++word;
+        }
+        else if (arg == instruction_argument::storage_class) {
+            out << " " << static_cast<spv::StorageClass>(*word);
+            ++word;
+        }
         else {
-            out << " " << "unknown argument";
+            out << " " << "<unknown argument>";
+            break;
         }
     }
     return out;
