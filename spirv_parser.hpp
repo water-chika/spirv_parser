@@ -87,12 +87,13 @@ struct instruction_encode {
     constexpr instruction_encode() = default;
     constexpr instruction_encode(spv::Op op,
         instruction_argument arg0 = instruction_argument::none, instruction_argument arg1 = instruction_argument::none,
-        instruction_argument arg2= instruction_argument::none, instruction_argument arg3 = instruction_argument::none)
+        instruction_argument arg2 = instruction_argument::none, instruction_argument arg3 = instruction_argument::none,
+        instruction_argument arg4 = instruction_argument::none, instruction_argument arg5 = instruction_argument::none)
     : op{op},
-      args{arg0, arg1, arg2, arg3}
+      args{arg0, arg1, arg2, arg3, arg4, arg5}
     {}
     spv::Op op;
-    instruction_argument args[4];
+    instruction_argument args[6];
 };
 
 constexpr auto instruction_encodes = std::to_array<instruction_encode>({
@@ -110,6 +111,37 @@ constexpr auto instruction_encodes = std::to_array<instruction_encode>({
     {spv::OpTypeFunction, instruction_argument::id, instruction_argument::id, instruction_argument::ids},
     {spv::OpTypeInt, instruction_argument::id, instruction_argument::literal_number, instruction_argument::literal_number},
     {spv::OpTypePointer, instruction_argument::id, instruction_argument::storage_class, instruction_argument::id},
+    {spv::OpTypeVector, instruction_argument::id, instruction_argument::id, instruction_argument::literal_number},
+    {spv::OpVariable, instruction_argument::id, instruction_argument::id, instruction_argument::storage_class, instruction_argument::ids},
+    {spv::OpConstant, instruction_argument::id, instruction_argument::id, instruction_argument::literal_number},
+    {spv::OpTypeBool, instruction_argument::id},
+    {spv::OpTypeArray, instruction_argument::id, instruction_argument::id, instruction_argument::id},
+    {spv::OpTypeStruct, instruction_argument::id, instruction_argument::ids},
+    {spv::OpConstantComposite, instruction_argument::id, instruction_argument::id, instruction_argument::ids},
+    {spv::OpFunction, instruction_argument::id, instruction_argument::id, instruction_argument::literal_number, instruction_argument::id},
+    {spv::OpLabel, instruction_argument::id},
+    {spv::OpAccessChain, instruction_argument::id, instruction_argument::id, instruction_argument::id, instruction_argument::ids},
+    {spv::OpLoad, instruction_argument::id, instruction_argument::id, instruction_argument::id, instruction_argument::literal_number},
+    {spv::OpStore, instruction_argument::id, instruction_argument::id, instruction_argument::id, instruction_argument::literal_number},
+    {spv::OpBranch, instruction_argument::id},
+    {spv::OpLoopMerge, instruction_argument::id, instruction_argument::id, instruction_argument::literal_number, instruction_argument::literals},
+    {spv::OpULessThan, instruction_argument::id, instruction_argument::id, instruction_argument::id, instruction_argument::id},
+    {spv::OpBranchConditional, instruction_argument::id, instruction_argument::id, instruction_argument::id, instruction_argument::literals},
+    {spv::OpIMul, instruction_argument::id, instruction_argument::id, instruction_argument::id, instruction_argument::id},
+    {spv::OpIAdd, instruction_argument::id, instruction_argument::id, instruction_argument::id, instruction_argument::id},
+    {spv::OpUMod, instruction_argument::id, instruction_argument::id, instruction_argument::id, instruction_argument::id},
+    {spv::OpUDiv, instruction_argument::id, instruction_argument::id, instruction_argument::id, instruction_argument::id},
+    {spv::OpShiftLeftLogical, instruction_argument::id, instruction_argument::id, instruction_argument::id, instruction_argument::id},
+    {spv::OpBitwiseAnd, instruction_argument::id, instruction_argument::id, instruction_argument::id, instruction_argument::id},
+    {spv::OpINotEqual, instruction_argument::id, instruction_argument::id, instruction_argument::id, instruction_argument::id},
+    {spv::OpSelectionMerge, instruction_argument::literal_number},
+    {spv::OpAtomicOr, instruction_argument::id, instruction_argument::id, instruction_argument::id, instruction_argument::id, instruction_argument::id, instruction_argument::id},
+    {spv::OpAtomicAnd, instruction_argument::id, instruction_argument::id, instruction_argument::id, instruction_argument::id, instruction_argument::id, instruction_argument::id},
+    {spv::OpNot, instruction_argument::id, instruction_argument::id, instruction_argument::id},
+    {spv::OpReturn},
+    {spv::OpReturnValue, instruction_argument::id},
+    {spv::OpFunctionEnd},
+
 });
 constexpr auto get_instruction_encode(spv::Op op) {
     constexpr auto map = constexpr_map::construct_const_map<instruction_encodes, decltype([](auto i) {return i.op; })>();
@@ -147,6 +179,7 @@ std::ostream& operator<<(std::ostream& out, const spv::Decoration decoration) {
 std::ostream& operator<<(std::ostream& out, const spv::StorageClass storage_class) {
     return out << spv::StorageClassToString(storage_class);
 }
+
 
 std::ostream& operator<<(std::ostream& out, const instruction_binary_ref& inst) {
     out << spv::OpToString(inst.get_opcode());
