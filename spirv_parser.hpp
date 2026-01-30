@@ -81,8 +81,9 @@ enum class instruction_argument {
     source_language,
     decoration,
     storage_class,
+    optional_fp_encoding,
+    literal_number_labels,
 };
-
 struct instruction_encode {
     constexpr instruction_encode() = default;
     constexpr instruction_encode(spv::Op op,
@@ -126,57 +127,65 @@ constexpr auto instruction_encodes = std::to_array<instruction_encode>({
     {spv::OpBranch, instruction_argument::id},
     {spv::OpLoopMerge, instruction_argument::id, instruction_argument::id, instruction_argument::literal_number, instruction_argument::literals},
     {spv::OpULessThan, instruction_argument::id, instruction_argument::id, instruction_argument::id, instruction_argument::id},
+    {spv::OpULessThanEqual, instruction_argument::id, instruction_argument::id, instruction_argument::id, instruction_argument::id},
+    {spv::OpUGreaterThan, instruction_argument::id, instruction_argument::id, instruction_argument::id, instruction_argument::id},
+    {spv::OpUGreaterThanEqual, instruction_argument::id, instruction_argument::id, instruction_argument::id, instruction_argument::id},
     {spv::OpBranchConditional, instruction_argument::id, instruction_argument::id, instruction_argument::id, instruction_argument::literals},
     {spv::OpIMul, instruction_argument::id, instruction_argument::id, instruction_argument::id, instruction_argument::id},
     {spv::OpIAdd, instruction_argument::id, instruction_argument::id, instruction_argument::id, instruction_argument::id},
+    {spv::OpISub, instruction_argument::id, instruction_argument::id, instruction_argument::id, instruction_argument::id},
     {spv::OpUMod, instruction_argument::id, instruction_argument::id, instruction_argument::id, instruction_argument::id},
     {spv::OpUDiv, instruction_argument::id, instruction_argument::id, instruction_argument::id, instruction_argument::id},
+    {spv::OpFAdd, instruction_argument::id, instruction_argument::id, instruction_argument::id, instruction_argument::id},
     {spv::OpShiftLeftLogical, instruction_argument::id, instruction_argument::id, instruction_argument::id, instruction_argument::id},
+    {spv::OpShiftRightLogical, instruction_argument::id, instruction_argument::id, instruction_argument::id, instruction_argument::id},
     {spv::OpBitwiseAnd, instruction_argument::id, instruction_argument::id, instruction_argument::id, instruction_argument::id},
+    {spv::OpLogicalAnd, instruction_argument::id, instruction_argument::id, instruction_argument::id, instruction_argument::id},
     {spv::OpINotEqual, instruction_argument::id, instruction_argument::id, instruction_argument::id, instruction_argument::id},
+    {spv::OpIEqual, instruction_argument::id, instruction_argument::id, instruction_argument::id, instruction_argument::id},
     {spv::OpSelectionMerge, instruction_argument::literal_number},
     {spv::OpAtomicOr, instruction_argument::id, instruction_argument::id, instruction_argument::id, instruction_argument::id, instruction_argument::id, instruction_argument::id},
     {spv::OpAtomicAnd, instruction_argument::id, instruction_argument::id, instruction_argument::id, instruction_argument::id, instruction_argument::id, instruction_argument::id},
     {spv::OpNot, instruction_argument::id, instruction_argument::id, instruction_argument::id},
+    {spv::OpLogicalNot, instruction_argument::id, instruction_argument::id, instruction_argument::id},
     {spv::OpReturn},
     {spv::OpReturnValue, instruction_argument::id},
     {spv::OpFunctionEnd},
+    {spv::OpTypeFloat, instruction_argument::id, instruction_argument::literal_number, instruction_argument::optional_fp_encoding},
+    {spv::OpSpecConstantTrue, instruction_argument::id, instruction_argument::id},
+    {spv::OpSpecConstantFalse, instruction_argument::id, instruction_argument::id},
+    {spv::OpSpecConstant, instruction_argument::id, instruction_argument::id, instruction_argument::literal_number},
+    {spv::OpSpecConstantComposite, instruction_argument::id, instruction_argument::id, instruction_argument::ids},
+    {spv::OpSpecConstantOp, instruction_argument::id, instruction_argument::id, instruction_argument::literal_number, instruction_argument::ids},
+    {spv::OpTypeRuntimeArray, instruction_argument::id, instruction_argument::id},
+    {spv::OpSwitch, instruction_argument::id, instruction_argument::id, instruction_argument::literal_number_labels},
+    {spv::OpPhi, instruction_argument::id, instruction_argument::id, instruction_argument::ids},
+    {spv::OpExtInst, instruction_argument::id, instruction_argument::id, instruction_argument::id, instruction_argument::literal_number, instruction_argument::ids},
+    {spv::OpMemoryBarrier, instruction_argument::id, instruction_argument::id},
+    {spv::OpControlBarrier, instruction_argument::id, instruction_argument::id, instruction_argument::id},
 });
 constexpr auto get_instruction_encode(spv::Op op) {
     constexpr auto map = constexpr_map::construct_const_map<instruction_encodes, decltype([](auto i) {return i.op; })>();
     return map[op];
 }
 
-std::ostream& operator<<(std::ostream& out, const spv::Capability cap) {
-    return out << spv::CapabilityToString(cap);
-}
+auto to_string(spv::Capability cap) { return spv::CapabilityToString(cap); }
+auto to_string(spv::MemoryModel v) { return spv::MemoryModelToString(v); }
+auto to_string(spv::AddressingModel v) { return spv::AddressingModelToString(v); }
+auto to_string(spv::ExecutionModel v) { return spv::ExecutionModelToString(v); }
+auto to_string(spv::ExecutionMode v) { return spv::ExecutionModeToString(v); }
+auto to_string(spv::SourceLanguage v) { return spv::SourceLanguageToString(v); }
+auto to_string(spv::Decoration v) { return spv::DecorationToString(v); }
+auto to_string(spv::StorageClass v) { return spv::StorageClassToString(v); }
+auto to_string(spv::FPEncoding v) { return spv::FPEncodingToString(v); }
 
-std::ostream& operator<<(std::ostream& out, const spv::MemoryModel memory_model) {
-    return out << spv::MemoryModelToString(memory_model);
-}
+template<typename T>
+concept to_string_able = requires (T t) {
+    to_string(t);
+};
 
-std::ostream& operator<<(std::ostream& out, const spv::AddressingModel addressing_model) {
-    return out << spv::AddressingModelToString(addressing_model);
-}
-
-std::ostream& operator<<(std::ostream& out, const spv::ExecutionModel execution_model) {
-    return out << spv::ExecutionModelToString(execution_model);
-}
-
-std::ostream& operator<<(std::ostream& out, const spv::ExecutionMode execution_mode) {
-    return out << spv::ExecutionModeToString(execution_mode);
-}
-
-std::ostream& operator<<(std::ostream& out, const spv::SourceLanguage source_language) {
-    return out << spv::SourceLanguageToString(source_language);
-}
-
-std::ostream& operator<<(std::ostream& out, const spv::Decoration decoration) {
-    return out << spv::DecorationToString(decoration);
-}
-
-std::ostream& operator<<(std::ostream& out, const spv::StorageClass storage_class) {
-    return out << spv::StorageClassToString(storage_class);
+std::ostream& operator<<(std::ostream& out, const to_string_able auto cap) {
+    return out << to_string(cap);
 }
 
 
@@ -246,7 +255,7 @@ std::ostream& operator<<(std::ostream& out, const instruction_binary_ref& inst) 
             out << " " << static_cast<spv::ExecutionModel>(*word);
             ++word;
         }
-                else if (arg == instruction_argument::execution_mode) {
+        else if (arg == instruction_argument::execution_mode) {
             out << " " << static_cast<spv::ExecutionMode>(*word);
             ++word;
         }
@@ -272,6 +281,23 @@ std::ostream& operator<<(std::ostream& out, const instruction_binary_ref& inst) 
         else if (arg == instruction_argument::storage_class) {
             out << " " << static_cast<spv::StorageClass>(*word);
             ++word;
+        }
+        else if (arg == instruction_argument::optional_fp_encoding) {
+            if (word < inst.words + inst.get_word_count()) {
+                out << " " << static_cast<spv::FPEncoding>(*word);
+                ++word;
+            }
+            else {
+                break;
+            }
+        }
+        else if (arg == instruction_argument::literal_number_labels) {
+            auto remaining_word = inst.words + inst.get_word_count() - word;
+            for (int i = 0; 2*i < remaining_word; i++) {
+                out << " " << word[2*i] << " " << static_cast<id>(word[2*i+1]);
+            }
+            word += remaining_word;
+            break;
         }
         else {
             out << " " << "<unknown argument>";
