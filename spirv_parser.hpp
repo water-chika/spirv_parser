@@ -24,7 +24,7 @@ struct literal_number {
 };
 
 std::ostream& operator<<(std::ostream& out, literal_number number) {
-    return out << "$" << number.value;
+    return out << number.value;
 }
 
 template<bool HasResult=false, bool HasInstructionType=false, uint32_t OperandsSize=0>
@@ -141,7 +141,6 @@ constexpr auto instruction_encodes = std::to_array<instruction_encode>({
     {spv::OpReturn},
     {spv::OpReturnValue, instruction_argument::id},
     {spv::OpFunctionEnd},
-
 });
 constexpr auto get_instruction_encode(spv::Op op) {
     constexpr auto map = constexpr_map::construct_const_map<instruction_encodes, decltype([](auto i) {return i.op; })>();
@@ -195,7 +194,7 @@ std::ostream& operator<<(std::ostream& out, const instruction_binary_ref& inst) 
         }
         else if (arg == instruction_argument::literal_string) {
             auto string = std::string_view{reinterpret_cast<char*>(word)};
-            out << " " << string;
+            out << " \"" << string << "\"";
             auto len = string.size();
             auto string_word_count = (len+sizeof(word)-1) / sizeof(word);
             word += string_word_count;
@@ -203,7 +202,7 @@ std::ostream& operator<<(std::ostream& out, const instruction_binary_ref& inst) 
         else if (arg == instruction_argument::optional_literal_string) {
             if (word < inst.words + inst.get_word_count()) {
                 auto string = std::string_view{reinterpret_cast<char*>(word)};
-                out << " " << string;
+                out << " \"" << string << "\"";
                 auto len = string.size();
                 auto string_word_count = (len+sizeof(word)-1) / sizeof(word);
                 word += string_word_count;
