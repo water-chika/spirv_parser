@@ -78,6 +78,7 @@ enum class instruction_argument {
     execution_model,
     literals,
     literal_number,
+    optional_literal_number,
     source_language,
     decoration,
     storage_class,
@@ -163,6 +164,17 @@ constexpr auto instruction_encodes = std::to_array<instruction_encode>({
     {spv::OpExtInst, instruction_argument::id, instruction_argument::id, instruction_argument::id, instruction_argument::literal_number, instruction_argument::ids},
     {spv::OpMemoryBarrier, instruction_argument::id, instruction_argument::id},
     {spv::OpControlBarrier, instruction_argument::id, instruction_argument::id, instruction_argument::id},
+    {spv::OpFConvert, instruction_argument::id, instruction_argument::id, instruction_argument::id},
+    {spv::OpCompositeConstruct, instruction_argument::id, instruction_argument::id, instruction_argument::ids},
+    {spv::OpCompositeExtract, instruction_argument::id, instruction_argument::id, instruction_argument::ids},
+    {spv::OpExtension, instruction_argument::literal_string},
+    {spv::OpSourceExtension, instruction_argument::literal_string},
+    {spv::OpTypeCooperativeMatrixKHR, instruction_argument::id, instruction_argument::id, instruction_argument::id, instruction_argument::id, instruction_argument::id, instruction_argument::id},
+    {spv::OpFunctionCall, instruction_argument::id, instruction_argument::id, instruction_argument::id, instruction_argument::ids},
+    {spv::OpCooperativeMatrixLoadKHR, instruction_argument::id, instruction_argument::id, instruction_argument::id, instruction_argument::id, instruction_argument::optional_id, instruction_argument::optional_literal_number},
+    {spv::OpCooperativeMatrixStoreKHR, instruction_argument::id, instruction_argument::id, instruction_argument::id, instruction_argument::optional_id, instruction_argument::optional_literal_number},
+    {spv::OpCooperativeMatrixMulAddKHR, instruction_argument::id, instruction_argument::id, instruction_argument::id, instruction_argument::id, instruction_argument::id, instruction_argument::optional_literal_number},
+    {spv::OpFunctionParameter, instruction_argument::id, instruction_argument::id},
 });
 constexpr auto get_instruction_encode(spv::Op op) {
     constexpr auto map = constexpr_map::construct_const_map<instruction_encodes, decltype([](auto i) {return i.op; })>();
@@ -262,6 +274,12 @@ std::ostream& operator<<(std::ostream& out, const instruction_binary_ref& inst) 
         else if (arg == instruction_argument::literal_number) {
             out << " " << static_cast<literal_number>(*word);
             ++word;
+        }
+        else if (arg == instruction_argument::optional_literal_number) {
+            if (word < inst.words + inst.get_word_count()) {
+                out << " " << static_cast<literal_number>(*word);
+                ++word;
+            }
         }
         else if (arg == instruction_argument::literals) {
             while (word < inst.words + inst.get_word_count()) {
