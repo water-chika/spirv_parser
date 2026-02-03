@@ -2,6 +2,7 @@
 
 #include <unordered_map>
 #include <tuple>
+#include <functional>
 
 #include <win32_helper.hpp>
 #include <constexpr_map.hpp>
@@ -54,7 +55,8 @@ struct instruction_binary {
     }
 };
 
-struct instruction_binary_ref {
+template<bool KnownOp = false, spv::Op OP = spv::OpNop>
+struct instruction_binary_reference {
     word* words;
     auto get_word_count() const {
         return (words[0] >> 16) & 0xffff;
@@ -63,6 +65,10 @@ struct instruction_binary_ref {
         return static_cast<spv::Op>(words[0] & 0xffff);
     }
 };
+
+using instruction_binary_ref = instruction_binary_reference<>;
+template<spv::Op OP>
+using instruction_binary_ref_with_op = instruction_binary_reference<true, OP>;
 
 enum class instruction_argument {
     none,
@@ -198,6 +204,63 @@ concept to_string_able = requires (T t) {
 
 std::ostream& operator<<(std::ostream& out, const to_string_able auto cap) {
     return out << to_string(cap);
+}
+
+template<bool KnownArgument = false, instruction_argument Arg = instruction_argument::none>
+struct instruction_argument_binary_reference {
+    instruction_argument arg;
+    word* argument_word;
+    word* instruction_word_end;
+};
+template<instruction_argument Arg>
+struct instruction_argument_binary_reference<true, Arg> {
+    word* argument_word;
+    word* instruction_word_end;
+};
+using instruction_argument_binary_ref = instruction_argument_binary_reference<>;
+template<instruction_argument Arg>
+using instruction_argument_binary_ref_arg = instruction_argument_binary_reference<true, Arg>;
+
+using instruction_argument_binary_ref_arg_variant = std::variant<
+    instruction_argument_binary_ref_arg<instruction_argument::capability>,
+    instruction_argument_binary_ref_arg<instruction_argument::id>
+>;
+
+auto argument_to_known = std::to_array<
+    std::pair<
+        instruction_argument,
+        std::function<instruction_argument_binary_ref_arg_variant(const instruction_argument_binary_ref&)>
+    >
+>(
+{
+    {
+        instruction_argument::capability,
+        [](const instruction_argument_binary_ref& arg){
+            return instruction_argument_binary_ref_arg_variant{
+                instruction_argument_binary_ref_arg<instruction_argument::capability>{arg.argument_word, arg.instruction_word_end}
+            };
+        }
+    },
+    {
+        instruction_argument::id,
+        [](const instruction_argument_binary_ref& arg){
+            return instruction_argument_binary_ref_arg_variant{
+                instruction_argument_binary_ref_arg<instruction_argument::id>{arg.argument_word, arg.instruction_word_end}
+            };
+        }
+    }
+}
+);
+
+auto to_known_argument_variant(const instruction_argument_binary_ref& arg) {
+}
+
+uint16_t get_word_count(const instruction_argument_binary_ref& arg) {
+    return 0;
+}
+
+std::ostream& operator<<(std::ostream& out, const instruction_argument_binary_ref& arg) {
+    return out;
 }
 
 
