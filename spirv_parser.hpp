@@ -90,6 +90,7 @@ enum class instruction_argument {
     storage_class,
     optional_fp_encoding,
     literal_number_labels,
+    group_operation,
 };
 struct instruction_encode {
     constexpr instruction_encode() = default;
@@ -181,6 +182,7 @@ constexpr auto instruction_encodes = std::to_array<instruction_encode>({
     {spv::OpCooperativeMatrixStoreKHR, instruction_argument::id, instruction_argument::id, instruction_argument::id, instruction_argument::optional_id, instruction_argument::optional_literal_number},
     {spv::OpCooperativeMatrixMulAddKHR, instruction_argument::id, instruction_argument::id, instruction_argument::id, instruction_argument::id, instruction_argument::id, instruction_argument::optional_literal_number},
     {spv::OpFunctionParameter, instruction_argument::id, instruction_argument::id},
+    {spv::OpGroupNonUniformFAdd, instruction_argument::id, instruction_argument::id, instruction_argument::id, instruction_argument::group_operation, instruction_argument::id, instruction_argument::optional_id}
 });
 constexpr auto get_instruction_encode(spv::Op op) {
     constexpr auto map = constexpr_map::construct_const_map<instruction_encodes, decltype([](auto i) {return i.op; })>();
@@ -196,6 +198,7 @@ auto to_string(spv::SourceLanguage v) { return spv::SourceLanguageToString(v); }
 auto to_string(spv::Decoration v) { return spv::DecorationToString(v); }
 auto to_string(spv::StorageClass v) { return spv::StorageClassToString(v); }
 auto to_string(spv::FPEncoding v) { return spv::FPEncodingToString(v); }
+auto to_string(spv::GroupOperation v) { return spv::GroupOperationToString(v); }
 
 template<typename T>
 concept to_string_able = requires (T t) {
@@ -379,6 +382,10 @@ std::ostream& operator<<(std::ostream& out, const instruction_binary_ref& inst) 
             }
             word += remaining_word;
             break;
+        }
+        else if (arg == instruction_argument::group_operation) {
+            out << " " << static_cast<spv::GroupOperation>(*word);
+            ++word;
         }
         else {
             out << " " << "<unknown argument>";
