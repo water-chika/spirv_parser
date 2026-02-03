@@ -123,6 +123,8 @@ constexpr auto instruction_encodes = std::to_array<instruction_encode>({
     {spv::OpTypeVector, instruction_argument::id, instruction_argument::id, instruction_argument::literal_number},
     {spv::OpVariable, instruction_argument::id, instruction_argument::id, instruction_argument::storage_class, instruction_argument::ids},
     {spv::OpConstant, instruction_argument::id, instruction_argument::id, instruction_argument::literal_number},
+    {spv::OpConstantFalse, instruction_argument::id, instruction_argument::id},
+    {spv::OpConstantTrue, instruction_argument::id, instruction_argument::id},
     {spv::OpTypeBool, instruction_argument::id},
     {spv::OpTypeArray, instruction_argument::id, instruction_argument::id, instruction_argument::id},
     {spv::OpTypeStruct, instruction_argument::id, instruction_argument::ids},
@@ -138,6 +140,8 @@ constexpr auto instruction_encodes = std::to_array<instruction_encode>({
     {spv::OpULessThanEqual, instruction_argument::id, instruction_argument::id, instruction_argument::id, instruction_argument::id},
     {spv::OpUGreaterThan, instruction_argument::id, instruction_argument::id, instruction_argument::id, instruction_argument::id},
     {spv::OpUGreaterThanEqual, instruction_argument::id, instruction_argument::id, instruction_argument::id, instruction_argument::id},
+    {spv::OpSGreaterThan, instruction_argument::id, instruction_argument::id, instruction_argument::id, instruction_argument::id},
+    {spv::OpSGreaterThanEqual, instruction_argument::id, instruction_argument::id, instruction_argument::id, instruction_argument::id},
     {spv::OpBranchConditional, instruction_argument::id, instruction_argument::id, instruction_argument::id, instruction_argument::literals},
     {spv::OpIMul, instruction_argument::id, instruction_argument::id, instruction_argument::id, instruction_argument::id},
     {spv::OpIAdd, instruction_argument::id, instruction_argument::id, instruction_argument::id, instruction_argument::id},
@@ -145,10 +149,20 @@ constexpr auto instruction_encodes = std::to_array<instruction_encode>({
     {spv::OpUMod, instruction_argument::id, instruction_argument::id, instruction_argument::id, instruction_argument::id},
     {spv::OpUDiv, instruction_argument::id, instruction_argument::id, instruction_argument::id, instruction_argument::id},
     {spv::OpFAdd, instruction_argument::id, instruction_argument::id, instruction_argument::id, instruction_argument::id},
+    {spv::OpFSub, instruction_argument::id, instruction_argument::id, instruction_argument::id, instruction_argument::id},
+    {spv::OpFMul, instruction_argument::id, instruction_argument::id, instruction_argument::id, instruction_argument::id},
+    {spv::OpDot, instruction_argument::id, instruction_argument::id, instruction_argument::id, instruction_argument::id},
+    {spv::OpSDot, instruction_argument::id, instruction_argument::id, instruction_argument::id, instruction_argument::id, instruction_argument::optional_literal_number},
+    {spv::OpVectorTimesScalar, instruction_argument::id, instruction_argument::id, instruction_argument::id, instruction_argument::id},
+
     {spv::OpShiftLeftLogical, instruction_argument::id, instruction_argument::id, instruction_argument::id, instruction_argument::id},
     {spv::OpShiftRightLogical, instruction_argument::id, instruction_argument::id, instruction_argument::id, instruction_argument::id},
+    {spv::OpShiftRightArithmetic, instruction_argument::id, instruction_argument::id, instruction_argument::id, instruction_argument::id},
     {spv::OpBitwiseAnd, instruction_argument::id, instruction_argument::id, instruction_argument::id, instruction_argument::id},
+    {spv::OpBitwiseOr, instruction_argument::id, instruction_argument::id, instruction_argument::id, instruction_argument::id},
+    {spv::OpBitwiseXor, instruction_argument::id, instruction_argument::id, instruction_argument::id, instruction_argument::id},
     {spv::OpLogicalAnd, instruction_argument::id, instruction_argument::id, instruction_argument::id, instruction_argument::id},
+    {spv::OpLogicalOr, instruction_argument::id, instruction_argument::id, instruction_argument::id, instruction_argument::id},
     {spv::OpINotEqual, instruction_argument::id, instruction_argument::id, instruction_argument::id, instruction_argument::id},
     {spv::OpIEqual, instruction_argument::id, instruction_argument::id, instruction_argument::id, instruction_argument::id},
     {spv::OpSelectionMerge, instruction_argument::literal_number},
@@ -172,6 +186,12 @@ constexpr auto instruction_encodes = std::to_array<instruction_encode>({
     {spv::OpMemoryBarrier, instruction_argument::id, instruction_argument::id},
     {spv::OpControlBarrier, instruction_argument::id, instruction_argument::id, instruction_argument::id},
     {spv::OpFConvert, instruction_argument::id, instruction_argument::id, instruction_argument::id},
+    {spv::OpUConvert, instruction_argument::id, instruction_argument::id, instruction_argument::id},
+    {spv::OpSConvert, instruction_argument::id, instruction_argument::id, instruction_argument::id},
+    {spv::OpConvertUToF, instruction_argument::id, instruction_argument::id, instruction_argument::id},
+    {spv::OpConvertFToU, instruction_argument::id, instruction_argument::id, instruction_argument::id},
+    {spv::OpConvertFToS, instruction_argument::id, instruction_argument::id, instruction_argument::id},
+    {spv::OpConvertSToF, instruction_argument::id, instruction_argument::id, instruction_argument::id},
     {spv::OpCompositeConstruct, instruction_argument::id, instruction_argument::id, instruction_argument::ids},
     {spv::OpCompositeExtract, instruction_argument::id, instruction_argument::id, instruction_argument::ids},
     {spv::OpExtension, instruction_argument::literal_string},
@@ -182,7 +202,18 @@ constexpr auto instruction_encodes = std::to_array<instruction_encode>({
     {spv::OpCooperativeMatrixStoreKHR, instruction_argument::id, instruction_argument::id, instruction_argument::id, instruction_argument::optional_id, instruction_argument::optional_literal_number},
     {spv::OpCooperativeMatrixMulAddKHR, instruction_argument::id, instruction_argument::id, instruction_argument::id, instruction_argument::id, instruction_argument::id, instruction_argument::optional_literal_number},
     {spv::OpFunctionParameter, instruction_argument::id, instruction_argument::id},
-    {spv::OpGroupNonUniformFAdd, instruction_argument::id, instruction_argument::id, instruction_argument::id, instruction_argument::group_operation, instruction_argument::id, instruction_argument::optional_id}
+    {spv::OpGroupNonUniformFAdd, instruction_argument::id, instruction_argument::id, instruction_argument::id, instruction_argument::group_operation, instruction_argument::id, instruction_argument::optional_id},
+    {spv::OpBitcast, instruction_argument::id, instruction_argument::id, instruction_argument::id},
+    {spv::OpCopyLogical, instruction_argument::id, instruction_argument::id, instruction_argument::id},
+    {spv::OpBitFieldUExtract, instruction_argument::id, instruction_argument::id, instruction_argument::id, instruction_argument::id, instruction_argument::id},
+    {spv::OpBitFieldSExtract, instruction_argument::id, instruction_argument::id, instruction_argument::id, instruction_argument::id, instruction_argument::id},
+    {spv::OpVectorShuffle, instruction_argument::id, instruction_argument::id, instruction_argument::id, instruction_argument::id, instruction_argument::literals},
+    {spv::OpBitCount, instruction_argument::id, instruction_argument::id, instruction_argument::id},
+    {spv::OpSelect, instruction_argument::id, instruction_argument::id, instruction_argument::id, instruction_argument::id, instruction_argument::id},
+    {spv::OpFNegate, instruction_argument::id, instruction_argument::id, instruction_argument::id},
+    {spv::OpFUnordEqual, instruction_argument::id, instruction_argument::id, instruction_argument::id, instruction_argument::id},
+    {spv::OpFUnordNotEqual, instruction_argument::id, instruction_argument::id, instruction_argument::id, instruction_argument::id},
+    {spv::OpFOrdEqualOpDot, instruction_argument::id, instruction_argument::id, instruction_argument::id, instruction_argument::id},
 });
 constexpr auto get_instruction_encode(spv::Op op) {
     constexpr auto map = constexpr_map::construct_const_map<instruction_encodes, decltype([](auto i) {return i.op; })>();
@@ -271,7 +302,7 @@ std::ostream& operator<<(std::ostream& out, const instruction_binary_ref& inst) 
     out << spv::OpToString(inst.get_opcode());
     const auto encode = get_instruction_encode(inst.get_opcode());
     if (encode.op != inst.get_opcode()) {
-        throw std::runtime_error{"unknow opcode"};
+        throw std::runtime_error{std::format("unknow opcode {}",spv::OpToString(inst.get_opcode()))};
     }
     auto word = inst.words+1;
     for (const auto& arg : encode.args) {
