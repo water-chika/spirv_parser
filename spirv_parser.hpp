@@ -128,7 +128,30 @@ struct instruction_encode {
     instruction_argument args[6];
 };
 
-constexpr auto instruction_encodes = std::to_array<instruction_encode>({
+enum class extension {
+    khr_cooperative_matrix,
+};
+
+template<extension Ext>
+struct extension_instruction_encodes_struct {
+    static constexpr auto value = std::array<instruction_encode, 0>{};
+};
+template<extension Ext>
+constexpr auto extension_instruction_encodes = extension_instruction_encodes_struct<Ext>::value;
+
+template<>
+struct extension_instruction_encodes_struct<extension::khr_cooperative_matrix> {
+    static constexpr auto value = std::to_array<instruction_encode>({
+        {spv::OpCooperativeMatrixLoadKHR, instruction_argument::id, instruction_argument::id, instruction_argument::id, instruction_argument::id, instruction_argument::optional_id, instruction_argument::optional_literal_number},
+        {spv::OpCooperativeMatrixStoreKHR, instruction_argument::id, instruction_argument::id, instruction_argument::id, instruction_argument::optional_id, instruction_argument::optional_literal_number},
+        {spv::OpCooperativeMatrixMulAddKHR, instruction_argument::id, instruction_argument::id, instruction_argument::id, instruction_argument::id, instruction_argument::id, instruction_argument::optional_literal_number},
+        {spv::OpCooperativeMatrixLengthKHR, instruction_argument::id, instruction_argument::id, instruction_argument::id, instruction_argument::id},
+        {spv::OpTypeCooperativeMatrixKHR, instruction_argument::id, instruction_argument::id, instruction_argument::id, instruction_argument::id, instruction_argument::id, instruction_argument::id},
+    });
+};
+
+constexpr auto instruction_encodes = cpp_helper::merge(extension_instruction_encodes<extension::khr_cooperative_matrix>,
+    std::to_array<instruction_encode>({
     {spv::OpCapability, instruction_argument::capability},
     {spv::OpExtInstImport, instruction_argument::id, instruction_argument::literal_string},
     {spv::OpMemoryModel, instruction_argument::addressing_model, instruction_argument::memory_model},
@@ -219,11 +242,7 @@ constexpr auto instruction_encodes = std::to_array<instruction_encode>({
     {spv::OpCompositeExtract, instruction_argument::id, instruction_argument::id, instruction_argument::ids},
     {spv::OpExtension, instruction_argument::literal_string},
     {spv::OpSourceExtension, instruction_argument::literal_string},
-    {spv::OpTypeCooperativeMatrixKHR, instruction_argument::id, instruction_argument::id, instruction_argument::id, instruction_argument::id, instruction_argument::id, instruction_argument::id},
     {spv::OpFunctionCall, instruction_argument::id, instruction_argument::id, instruction_argument::id, instruction_argument::ids},
-    {spv::OpCooperativeMatrixLoadKHR, instruction_argument::id, instruction_argument::id, instruction_argument::id, instruction_argument::id, instruction_argument::optional_id, instruction_argument::optional_literal_number},
-    {spv::OpCooperativeMatrixStoreKHR, instruction_argument::id, instruction_argument::id, instruction_argument::id, instruction_argument::optional_id, instruction_argument::optional_literal_number},
-    {spv::OpCooperativeMatrixMulAddKHR, instruction_argument::id, instruction_argument::id, instruction_argument::id, instruction_argument::id, instruction_argument::id, instruction_argument::optional_literal_number},
     {spv::OpFunctionParameter, instruction_argument::id, instruction_argument::id},
     {spv::OpGroupNonUniformFAdd, instruction_argument::id, instruction_argument::id, instruction_argument::id, instruction_argument::group_operation, instruction_argument::id, instruction_argument::optional_id},
     {spv::OpBitcast, instruction_argument::id, instruction_argument::id, instruction_argument::id},
@@ -237,7 +256,8 @@ constexpr auto instruction_encodes = std::to_array<instruction_encode>({
     {spv::OpFUnordEqual, instruction_argument::id, instruction_argument::id, instruction_argument::id, instruction_argument::id},
     {spv::OpFUnordNotEqual, instruction_argument::id, instruction_argument::id, instruction_argument::id, instruction_argument::id},
     {spv::OpFOrdEqual, instruction_argument::id, instruction_argument::id, instruction_argument::id, instruction_argument::id},
-});
+    })
+);
 constexpr auto get_instruction_encode(spv::Op op) {
     constexpr auto map = constexpr_map::construct_const_map<instruction_encodes, decltype([](auto i) {return i.op; })>();
     return map[op];
