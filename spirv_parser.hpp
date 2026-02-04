@@ -92,6 +92,29 @@ enum class instruction_argument {
     literal_number_labels,
     group_operation,
 };
+
+constexpr auto valid_instruction_arguments = std::to_array({
+    instruction_argument::capability,
+    instruction_argument::id,
+    instruction_argument::ids,
+    instruction_argument::optional_id,
+    instruction_argument::execution_mode,
+    instruction_argument::literal_string,
+    instruction_argument::optional_literal_string,
+    instruction_argument::memory_model,
+    instruction_argument::addressing_model,
+    instruction_argument::execution_model,
+    instruction_argument::literals,
+    instruction_argument::literal_number,
+    instruction_argument::optional_literal_number,
+    instruction_argument::source_language,
+    instruction_argument::decoration,
+    instruction_argument::storage_class,
+    instruction_argument::optional_fp_encoding,
+    instruction_argument::literal_number_labels,
+    instruction_argument::group_operation,
+});
+
 struct instruction_encode {
     constexpr instruction_encode() = default;
     constexpr instruction_encode(spv::Op op,
@@ -213,7 +236,7 @@ constexpr auto instruction_encodes = std::to_array<instruction_encode>({
     {spv::OpFNegate, instruction_argument::id, instruction_argument::id, instruction_argument::id},
     {spv::OpFUnordEqual, instruction_argument::id, instruction_argument::id, instruction_argument::id, instruction_argument::id},
     {spv::OpFUnordNotEqual, instruction_argument::id, instruction_argument::id, instruction_argument::id, instruction_argument::id},
-    {spv::OpFOrdEqualOpDot, instruction_argument::id, instruction_argument::id, instruction_argument::id, instruction_argument::id},
+    {spv::OpFOrdEqual, instruction_argument::id, instruction_argument::id, instruction_argument::id, instruction_argument::id},
 });
 constexpr auto get_instruction_encode(spv::Op op) {
     constexpr auto map = constexpr_map::construct_const_map<instruction_encodes, decltype([](auto i) {return i.op; })>();
@@ -255,9 +278,31 @@ using instruction_argument_binary_ref = instruction_argument_binary_reference<>;
 template<instruction_argument Arg>
 using instruction_argument_binary_ref_arg = instruction_argument_binary_reference<true, Arg>;
 
+template<instruction_argument Arg>
+instruction_argument_binary_ref_arg<Arg> to_known_argument(const instruction_argument_binary_ref& arg) {
+    return instruction_argument_binary_ref_arg<Arg>{arg.argument_word, arg.instruction_word_end};
+}
+
 using instruction_argument_binary_ref_arg_variant = std::variant<
     instruction_argument_binary_ref_arg<instruction_argument::capability>,
-    instruction_argument_binary_ref_arg<instruction_argument::id>
+    instruction_argument_binary_ref_arg<instruction_argument::id>,
+    instruction_argument_binary_ref_arg<instruction_argument::ids>,
+    instruction_argument_binary_ref_arg<instruction_argument::optional_id>,
+    instruction_argument_binary_ref_arg<instruction_argument::execution_mode>,
+    instruction_argument_binary_ref_arg<instruction_argument::literal_string>,
+    instruction_argument_binary_ref_arg<instruction_argument::optional_literal_string>,
+    instruction_argument_binary_ref_arg<instruction_argument::memory_model>,
+    instruction_argument_binary_ref_arg<instruction_argument::addressing_model>,
+    instruction_argument_binary_ref_arg<instruction_argument::execution_model>,
+    instruction_argument_binary_ref_arg<instruction_argument::literals>,
+    instruction_argument_binary_ref_arg<instruction_argument::literal_number>,
+    instruction_argument_binary_ref_arg<instruction_argument::optional_literal_number>,
+    instruction_argument_binary_ref_arg<instruction_argument::source_language>,
+    instruction_argument_binary_ref_arg<instruction_argument::decoration>,
+    instruction_argument_binary_ref_arg<instruction_argument::storage_class>,
+    instruction_argument_binary_ref_arg<instruction_argument::optional_fp_encoding>,
+    instruction_argument_binary_ref_arg<instruction_argument::literal_number_labels>,
+    instruction_argument_binary_ref_arg<instruction_argument::group_operation>
 >;
 
 auto argument_to_known = std::to_array<
