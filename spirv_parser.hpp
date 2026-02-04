@@ -88,7 +88,9 @@ enum class instruction_argument {
     source_language,
     decoration,
     storage_class,
+    fp_encoding,
     optional_fp_encoding,
+    literal_number_label,
     literal_number_labels,
     group_operation,
 };
@@ -383,16 +385,27 @@ uint16_t get_word_count(const instruction_argument_binary_ref_arg<instruction_ar
     return arg.instruction_word_end - arg.argument_word;
 }
 uint16_t get_word_count(const instruction_argument_binary_ref_arg<instruction_argument::optional_id>& arg) {
-    return arg.instruction_word_end > arg.argument_word ? 1 : 0;
+    if (arg.argument_word < arg.instruction_word_end) {
+        auto element = instruction_argument_binary_ref_arg<instruction_argument::id>{arg.argument_word, arg.instruction_word_end};
+        return get_word_count(element);
+    }
+    return 0;
 }
 uint16_t get_word_count(const instruction_argument_binary_ref_arg<instruction_argument::execution_mode>& arg) {
     return 1;
 }
 uint16_t get_word_count(const instruction_argument_binary_ref_arg<instruction_argument::literal_string>& arg) {
-    return arg.instruction_word_end - arg.argument_word;
+    auto string = std::string_view{reinterpret_cast<char*>(arg.argument_word)};
+    auto len = string.size();
+    auto string_word_count = (len+sizeof(word)-1) / sizeof(word);
+    return string_word_count;
 }
 uint16_t get_word_count(const instruction_argument_binary_ref_arg<instruction_argument::optional_literal_string>& arg) {
-    return arg.instruction_word_end - arg.argument_word;
+    if (arg.argument_word < arg.instruction_word_end) {
+        auto element = instruction_argument_binary_ref_arg<instruction_argument::literal_string>{arg.argument_word, arg.instruction_word_end};
+        return get_word_count(element);
+    }
+    return 0;
 }
 uint16_t get_word_count(const instruction_argument_binary_ref_arg<instruction_argument::memory_model>& arg) {
     return 1;
@@ -410,7 +423,11 @@ uint16_t get_word_count(const instruction_argument_binary_ref_arg<instruction_ar
     return 1;
 }
 uint16_t get_word_count(const instruction_argument_binary_ref_arg<instruction_argument::optional_literal_number>& arg) {
-    return arg.instruction_word_end > arg.argument_word ? 1 : 0;
+    if (arg.argument_word < arg.instruction_word_end) {
+        auto element = instruction_argument_binary_ref_arg<instruction_argument::literal_number>{arg.argument_word, arg.instruction_word_end};
+        return get_word_count(element);
+    }
+    return 0;
 }
 uint16_t get_word_count(const instruction_argument_binary_ref_arg<instruction_argument::source_language>& arg) {
     return 1;
@@ -421,11 +438,27 @@ uint16_t get_word_count(const instruction_argument_binary_ref_arg<instruction_ar
 uint16_t get_word_count(const instruction_argument_binary_ref_arg<instruction_argument::storage_class>& arg) {
     return 1;
 }
+uint16_t get_word_count(const instruction_argument_binary_ref_arg<instruction_argument::fp_encoding>& arg) {
+    return 1;
+}
 uint16_t get_word_count(const instruction_argument_binary_ref_arg<instruction_argument::optional_fp_encoding>& arg) {
-    return arg.instruction_word_end > arg.argument_word ? 1 : 0;
+    if (arg.argument_word < arg.instruction_word_end) {
+        auto element = instruction_argument_binary_ref_arg<instruction_argument::fp_encoding>{arg.argument_word, arg.instruction_word_end};
+        return get_word_count(element);
+    }
+    return 0;
+}
+uint16_t get_word_count(const instruction_argument_binary_ref_arg<instruction_argument::literal_number_label>& arg) {
+    return 2;
 }
 uint16_t get_word_count(const instruction_argument_binary_ref_arg<instruction_argument::literal_number_labels>& arg) {
-    return arg.instruction_word_end > arg.argument_word;
+    uint16_t word_count = 0;
+    for (auto ite = arg.argument_word; ite < arg.instruction_word_end;) {
+        auto element = instruction_argument_binary_ref_arg<instruction_argument::literal_number>{ ite, arg.instruction_word_end };
+        ite += get_word_count(element);
+        word_count += get_word_count(element);
+    }
+    return word_count;
 }
 uint16_t get_word_count(const instruction_argument_binary_ref_arg<instruction_argument::group_operation>& arg) {
     return 1;
@@ -443,10 +476,131 @@ uint16_t get_word_count(const instruction_argument_binary_ref& arg) {
     return get_word_count(to_known_argument_variant(arg));
 }
 
-std::ostream& operator<<(std::ostream& out, const instruction_argument_binary_ref& arg) {
+std::ostream& operator<<(std::ostream& out, const instruction_argument_binary_ref_arg<instruction_argument::capability>& arg) {
+    return out << static_cast<spv::Capability>(*arg.argument_word);
+}
+std::ostream& operator<<(std::ostream& out, const instruction_argument_binary_ref_arg<instruction_argument::id>& arg) {
+    return out << static_cast<id>(*arg.argument_word);
+}
+std::ostream& operator<<(std::ostream& out, const instruction_argument_binary_ref_arg<instruction_argument::ids>& arg) {
+    for (auto ite = arg.argument_word; ite < arg.instruction_word_end; ++ite) {
+        auto element = instruction_argument_binary_ref_arg<instruction_argument::id>{arg.argument_word, arg.instruction_word_end};
+        out << element;
+        if (ite + 1 < arg.instruction_word_end) {
+            out << " ";
+        }
+    }
+    return out;
+}
+std::ostream& operator<<(std::ostream& out, const instruction_argument_binary_ref_arg<instruction_argument::optional_id>& arg) {
+    if (arg.argument_word < arg.instruction_word_end) {
+        auto element = instruction_argument_binary_ref_arg<instruction_argument::id>{arg.argument_word, arg.instruction_word_end};
+        out << element;
+    }
+    return out;
+}
+std::ostream& operator<<(std::ostream& out, const instruction_argument_binary_ref_arg<instruction_argument::execution_mode>& arg) {
+    return out << static_cast<spv::ExecutionMode>(*arg.argument_word);
+}
+std::ostream& operator<<(std::ostream& out, const instruction_argument_binary_ref_arg<instruction_argument::literal_string>& arg) {
+    auto string = std::string_view{reinterpret_cast<char*>(arg.argument_word)};
+    return out << " \"" << string << "\"";
+}
+std::ostream& operator<<(std::ostream& out, const instruction_argument_binary_ref_arg<instruction_argument::optional_literal_string>& arg) {
+    if (arg.argument_word < arg.instruction_word_end) {
+        auto element = instruction_argument_binary_ref_arg<instruction_argument::literal_string>{arg.argument_word, arg.instruction_word_end};
+        out << element;
+    }
+    return out;
+}
+std::ostream& operator<<(std::ostream& out, const instruction_argument_binary_ref_arg<instruction_argument::memory_model>& arg) {
+    return out << static_cast<spv::MemoryModel>(*arg.argument_word);
+}
+std::ostream& operator<<(std::ostream& out, const instruction_argument_binary_ref_arg<instruction_argument::addressing_model>& arg) {
+    return out << static_cast<spv::AddressingModel>(*arg.argument_word);
+}
+std::ostream& operator<<(std::ostream& out, const instruction_argument_binary_ref_arg<instruction_argument::execution_model>& arg) {
+    return out << static_cast<spv::ExecutionModel>(*arg.argument_word);
+}
+std::ostream& operator<<(std::ostream& out, const instruction_argument_binary_ref_arg<instruction_argument::literal_number>& arg) {
+    return out << static_cast<literal_number>(*arg.argument_word);
+}
+std::ostream& operator<<(std::ostream& out, const instruction_argument_binary_ref_arg<instruction_argument::literals>& arg) {
+    for (auto ite = arg.argument_word; ite < arg.instruction_word_end; ++ite) {
+        auto element = instruction_argument_binary_ref_arg<instruction_argument::literal_number>{ite, arg.instruction_word_end};
+        out << element;
+        if (ite + 1 < arg.instruction_word_end) {
+            out << " ";
+        }
+    }
+    return out;
+}
+std::ostream& operator<<(std::ostream& out, const instruction_argument_binary_ref_arg<instruction_argument::optional_literal_number>& arg) {
+    if (arg.argument_word < arg.instruction_word_end) {
+        auto element = instruction_argument_binary_ref_arg<instruction_argument::literal_number>{arg.argument_word, arg.instruction_word_end};
+        out << element;
+    }
+    return out;
+}
+std::ostream& operator<<(std::ostream& out, const instruction_argument_binary_ref_arg<instruction_argument::source_language>& arg) {
+    return out << static_cast<spv::SourceLanguage>(*arg.argument_word);
+}
+std::ostream& operator<<(std::ostream& out, const instruction_argument_binary_ref_arg<instruction_argument::decoration>& arg) {
+    return out << static_cast<spv::Decoration>(*arg.argument_word);
+}
+std::ostream& operator<<(std::ostream& out, const instruction_argument_binary_ref_arg<instruction_argument::storage_class>& arg) {
+    return out << static_cast<spv::StorageClass>(*arg.argument_word);
+}
+std::ostream& operator<<(std::ostream& out, const instruction_argument_binary_ref_arg<instruction_argument::fp_encoding>& arg) {
+    return out << static_cast<spv::FPEncoding>(*arg.argument_word);
+}
+std::ostream& operator<<(std::ostream& out, const instruction_argument_binary_ref_arg<instruction_argument::optional_fp_encoding>& arg) {
+    if (arg.argument_word < arg.instruction_word_end) {
+        auto element = instruction_argument_binary_ref_arg<instruction_argument::fp_encoding>{arg.argument_word, arg.instruction_word_end};
+        out << element;
+    }
     return out;
 }
 
+struct literal_number_label {
+    word* p;
+};
+
+std::ostream& operator<<(std::ostream& out, const literal_number_label& arg) {
+    return out << arg.p[0] << id{arg.p[1]};
+}
+
+std::ostream& operator<<(std::ostream& out, const instruction_argument_binary_ref_arg<instruction_argument::literal_number_label>& arg) {
+    return out << static_cast<literal_number_label>(arg.argument_word);
+}
+
+std::ostream& operator<<(std::ostream& out, const instruction_argument_binary_ref_arg<instruction_argument::literal_number_labels>& arg) {
+    for (auto ite = arg.argument_word; ite < arg.instruction_word_end;) {
+        auto element = instruction_argument_binary_ref_arg<instruction_argument::literal_number>{ite, arg.instruction_word_end};
+        out << element;
+        if (ite + 1 < arg.instruction_word_end) {
+            out << " ";
+        }
+        ite += get_word_count(element);
+    }
+    return out;
+}
+std::ostream& operator<<(std::ostream& out, const instruction_argument_binary_ref_arg<instruction_argument::group_operation>& arg) {
+    return out << static_cast<spv::GroupOperation>(*arg.argument_word);
+}
+
+std::ostream& operator<<(std::ostream& out, const instruction_argument_binary_ref_arg_variant& arg) {
+    std::visit(
+        [&out](const auto& arg){
+            out << arg;
+        },
+        arg);
+    return out;
+}
+
+std::ostream& operator<<(std::ostream& out, const instruction_argument_binary_ref& arg) {
+    return out << to_known_argument_variant(arg);
+}
 
 std::ostream& operator<<(std::ostream& out, const instruction_binary_ref& inst) {
     out << spv::OpToString(inst.get_opcode());
@@ -456,122 +610,12 @@ std::ostream& operator<<(std::ostream& out, const instruction_binary_ref& inst) 
     }
     auto word = inst.words+1;
     for (const auto& arg : encode.args) {
-        if (arg == instruction_argument::capability) {
-            out << " " << static_cast<spv::Capability>(*word);
-            ++word;
-        }
-        else if (arg == instruction_argument::literal_string) {
-            auto string = std::string_view{reinterpret_cast<char*>(word)};
-            out << " \"" << string << "\"";
-            auto len = string.size();
-            auto string_word_count = (len+sizeof(word)-1) / sizeof(word);
-            word += string_word_count;
-        }
-        else if (arg == instruction_argument::optional_literal_string) {
-            if (word < inst.words + inst.get_word_count()) {
-                auto string = std::string_view{reinterpret_cast<char*>(word)};
-                out << " \"" << string << "\"";
-                auto len = string.size();
-                auto string_word_count = (len+sizeof(word)-1) / sizeof(word);
-                word += string_word_count;
-            }
-            else {
-                break;
-            }
-        }
-        else if (arg == instruction_argument::id) {
-            out << " " << static_cast<id>(*word);
-            ++word;
-        }
-        else if (arg == instruction_argument::ids) {
-            while (word < inst.words + inst.get_word_count()) {
-                out << " " << static_cast<id>(*word);
-                ++word;
-            }
+        if (arg == instruction_argument::none || word >= inst.words + inst.get_word_count()) {
             break;
         }
-        else if (arg == instruction_argument::optional_id) {
-            if (word < inst.words + inst.get_word_count()) {
-                out << " " << static_cast<id>(*word);
-                ++word;
-            }
-            else {
-                break;
-            }
-        }
-        else if (arg == instruction_argument::none) {
-            break;
-        }
-        else if (arg == instruction_argument::memory_model) {
-            out << " " << static_cast<spv::MemoryModel>(*word);
-            ++word;
-        }
-        else if (arg == instruction_argument::addressing_model) {
-            out << " " << static_cast<spv::AddressingModel>(*word);
-            ++word;
-        }
-        else if (arg == instruction_argument::execution_model) {
-            out << " " << static_cast<spv::ExecutionModel>(*word);
-            ++word;
-        }
-        else if (arg == instruction_argument::execution_mode) {
-            out << " " << static_cast<spv::ExecutionMode>(*word);
-            ++word;
-        }
-        else if (arg == instruction_argument::literal_number) {
-            out << " " << static_cast<literal_number>(*word);
-            ++word;
-        }
-        else if (arg == instruction_argument::optional_literal_number) {
-            if (word < inst.words + inst.get_word_count()) {
-                out << " " << static_cast<literal_number>(*word);
-                ++word;
-            }
-        }
-        else if (arg == instruction_argument::literals) {
-            while (word < inst.words + inst.get_word_count()) {
-                out << " " << static_cast<literal_number>(*word);
-                ++word;
-            }
-            break;
-        }
-        else if (arg == instruction_argument::source_language) {
-            out << " " << static_cast<spv::SourceLanguage>(*word);
-            ++word;
-        }
-        else if (arg == instruction_argument::decoration) {
-            out << " " << static_cast<spv::Decoration>(*word);
-            ++word;
-        }
-        else if (arg == instruction_argument::storage_class) {
-            out << " " << static_cast<spv::StorageClass>(*word);
-            ++word;
-        }
-        else if (arg == instruction_argument::optional_fp_encoding) {
-            if (word < inst.words + inst.get_word_count()) {
-                out << " " << static_cast<spv::FPEncoding>(*word);
-                ++word;
-            }
-            else {
-                break;
-            }
-        }
-        else if (arg == instruction_argument::literal_number_labels) {
-            auto remaining_word = inst.words + inst.get_word_count() - word;
-            for (int i = 0; 2*i < remaining_word; i++) {
-                out << " " << word[2*i] << " " << static_cast<id>(word[2*i+1]);
-            }
-            word += remaining_word;
-            break;
-        }
-        else if (arg == instruction_argument::group_operation) {
-            out << " " << static_cast<spv::GroupOperation>(*word);
-            ++word;
-        }
-        else {
-            out << " " << "<unknown argument>";
-            break;
-        }
+        auto arg_binary_ref = instruction_argument_binary_ref{arg, word, inst.words + inst.get_word_count()};
+        out << " " << arg_binary_ref;
+        word += get_word_count(arg_binary_ref);
     }
     return out;
 }
