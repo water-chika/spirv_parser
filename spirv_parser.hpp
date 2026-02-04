@@ -305,37 +305,122 @@ using instruction_argument_binary_ref_arg_variant = std::variant<
     instruction_argument_binary_ref_arg<instruction_argument::group_operation>
 >;
 
-auto argument_to_known = std::to_array<
-    std::pair<
+template<instruction_argument Arg>
+instruction_argument_binary_ref_arg_variant to_known_variant_argument(const instruction_argument_binary_ref& arg) {
+    return to_known_argument<Arg>(arg);
+}
+
+using argument_to_known_element_t = std::pair<
         instruction_argument,
         std::function<instruction_argument_binary_ref_arg_variant(const instruction_argument_binary_ref&)>
-    >
+    >;
+
+template<instruction_argument Arg>
+argument_to_known_element_t construct_argument_to_known_element() {
+    return {Arg, to_known_variant_argument<Arg>};
+}
+
+auto argument_to_known = std::to_array<
+    argument_to_known_element_t
 >(
 {
-    {
-        instruction_argument::capability,
-        [](const instruction_argument_binary_ref& arg){
-            return instruction_argument_binary_ref_arg_variant{
-                instruction_argument_binary_ref_arg<instruction_argument::capability>{arg.argument_word, arg.instruction_word_end}
-            };
-        }
-    },
-    {
-        instruction_argument::id,
-        [](const instruction_argument_binary_ref& arg){
-            return instruction_argument_binary_ref_arg_variant{
-                instruction_argument_binary_ref_arg<instruction_argument::id>{arg.argument_word, arg.instruction_word_end}
-            };
-        }
-    }
+    construct_argument_to_known_element<instruction_argument::capability>(),
+    construct_argument_to_known_element<instruction_argument::id>(),
+    construct_argument_to_known_element<instruction_argument::ids>(),
+    construct_argument_to_known_element<instruction_argument::optional_id>(),
+    construct_argument_to_known_element<instruction_argument::execution_mode>(),
+    construct_argument_to_known_element<instruction_argument::literal_string>(),
+    construct_argument_to_known_element<instruction_argument::optional_literal_string>(),
+    construct_argument_to_known_element<instruction_argument::memory_model>(),
+    construct_argument_to_known_element<instruction_argument::addressing_model>(),
+    construct_argument_to_known_element<instruction_argument::execution_model>(),
+    construct_argument_to_known_element<instruction_argument::literals>(),
+    construct_argument_to_known_element<instruction_argument::literal_number>(),
+    construct_argument_to_known_element<instruction_argument::optional_literal_number>(),
+    construct_argument_to_known_element<instruction_argument::source_language>(),
+    construct_argument_to_known_element<instruction_argument::decoration>(),
+    construct_argument_to_known_element<instruction_argument::storage_class>(),
+    construct_argument_to_known_element<instruction_argument::optional_fp_encoding>(),
+    construct_argument_to_known_element<instruction_argument::literal_number_labels>(),
+    construct_argument_to_known_element<instruction_argument::group_operation>()
 }
 );
 
+auto argument_to_known_map = std::unordered_map{argument_to_known.begin(), argument_to_known.end()};
+
 auto to_known_argument_variant(const instruction_argument_binary_ref& arg) {
+    auto& to_known = argument_to_known_map[arg.arg];
+    return to_known(arg);
+}
+
+uint16_t get_word_count(const instruction_argument_binary_ref_arg<instruction_argument::capability>& arg) {
+    return 1;
+}
+uint16_t get_word_count(const instruction_argument_binary_ref_arg<instruction_argument::id>& arg) {
+    return 1;
+}
+uint16_t get_word_count(const instruction_argument_binary_ref_arg<instruction_argument::ids>& arg) {
+    return arg.instruction_word_end - arg.argument_word;
+}
+uint16_t get_word_count(const instruction_argument_binary_ref_arg<instruction_argument::optional_id>& arg) {
+    return arg.instruction_word_end > arg.argument_word ? 1 : 0;
+}
+uint16_t get_word_count(const instruction_argument_binary_ref_arg<instruction_argument::execution_mode>& arg) {
+    return 1;
+}
+uint16_t get_word_count(const instruction_argument_binary_ref_arg<instruction_argument::literal_string>& arg) {
+    return arg.instruction_word_end - arg.argument_word;
+}
+uint16_t get_word_count(const instruction_argument_binary_ref_arg<instruction_argument::optional_literal_string>& arg) {
+    return arg.instruction_word_end - arg.argument_word;
+}
+uint16_t get_word_count(const instruction_argument_binary_ref_arg<instruction_argument::memory_model>& arg) {
+    return 1;
+}
+uint16_t get_word_count(const instruction_argument_binary_ref_arg<instruction_argument::addressing_model>& arg) {
+    return 1;
+}
+uint16_t get_word_count(const instruction_argument_binary_ref_arg<instruction_argument::execution_model>& arg) {
+    return 1;
+}
+uint16_t get_word_count(const instruction_argument_binary_ref_arg<instruction_argument::literals>& arg) {
+    return arg.instruction_word_end - arg.argument_word;
+}
+uint16_t get_word_count(const instruction_argument_binary_ref_arg<instruction_argument::literal_number>& arg) {
+    return 1;
+}
+uint16_t get_word_count(const instruction_argument_binary_ref_arg<instruction_argument::optional_literal_number>& arg) {
+    return arg.instruction_word_end > arg.argument_word ? 1 : 0;
+}
+uint16_t get_word_count(const instruction_argument_binary_ref_arg<instruction_argument::source_language>& arg) {
+    return 1;
+}
+uint16_t get_word_count(const instruction_argument_binary_ref_arg<instruction_argument::decoration>& arg) {
+    return 1;
+}
+uint16_t get_word_count(const instruction_argument_binary_ref_arg<instruction_argument::storage_class>& arg) {
+    return 1;
+}
+uint16_t get_word_count(const instruction_argument_binary_ref_arg<instruction_argument::optional_fp_encoding>& arg) {
+    return arg.instruction_word_end > arg.argument_word ? 1 : 0;
+}
+uint16_t get_word_count(const instruction_argument_binary_ref_arg<instruction_argument::literal_number_labels>& arg) {
+    return arg.instruction_word_end > arg.argument_word;
+}
+uint16_t get_word_count(const instruction_argument_binary_ref_arg<instruction_argument::group_operation>& arg) {
+    return 1;
+}
+
+uint16_t get_word_count(const instruction_argument_binary_ref_arg_variant& arg) {
+    return std::visit(
+        [](const auto& arg){
+            return get_word_count(arg);
+        },
+        arg);
 }
 
 uint16_t get_word_count(const instruction_argument_binary_ref& arg) {
-    return 0;
+    return get_word_count(to_known_argument_variant(arg));
 }
 
 std::ostream& operator<<(std::ostream& out, const instruction_argument_binary_ref& arg) {
