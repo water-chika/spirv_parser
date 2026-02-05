@@ -275,6 +275,7 @@ auto to_string(spv::Decoration v) { return spv::DecorationToString(v); }
 auto to_string(spv::StorageClass v) { return spv::StorageClassToString(v); }
 auto to_string(spv::FPEncoding v) { return spv::FPEncodingToString(v); }
 auto to_string(spv::GroupOperation v) { return spv::GroupOperationToString(v); }
+auto to_string(spv::Op v) { return spv::OpToString(v); }
 
 template<typename T>
 concept to_string_able = requires (T t) {
@@ -396,8 +397,8 @@ uint16_t get_word_count(const instruction_argument_binary_ref_arg<instruction_ar
 }
 uint16_t get_word_count(const instruction_argument_binary_ref_arg<instruction_argument::literal_string>& arg) {
     auto string = std::string_view{reinterpret_cast<char*>(arg.argument_word)};
-    auto len = string.size();
-    auto string_word_count = (len+sizeof(word)-1) / sizeof(word);
+    auto size = string.size() + 1;
+    auto string_word_count = (size+sizeof(word)-1) / sizeof(word);
     return string_word_count;
 }
 uint16_t get_word_count(const instruction_argument_binary_ref_arg<instruction_argument::optional_literal_string>& arg) {
@@ -484,7 +485,7 @@ std::ostream& operator<<(std::ostream& out, const instruction_argument_binary_re
 }
 std::ostream& operator<<(std::ostream& out, const instruction_argument_binary_ref_arg<instruction_argument::ids>& arg) {
     for (auto ite = arg.argument_word; ite < arg.instruction_word_end; ++ite) {
-        auto element = instruction_argument_binary_ref_arg<instruction_argument::id>{arg.argument_word, arg.instruction_word_end};
+        auto element = instruction_argument_binary_ref_arg<instruction_argument::id>{ite, arg.instruction_word_end};
         out << element;
         if (ite + 1 < arg.instruction_word_end) {
             out << " ";
@@ -603,7 +604,7 @@ std::ostream& operator<<(std::ostream& out, const instruction_argument_binary_re
 }
 
 std::ostream& operator<<(std::ostream& out, const instruction_binary_ref& inst) {
-    out << spv::OpToString(inst.get_opcode());
+    out << inst.get_opcode();
     const auto encode = get_instruction_encode(inst.get_opcode());
     if (encode.op != inst.get_opcode()) {
         throw std::runtime_error{std::format("unknow opcode {}",spv::OpToString(inst.get_opcode()))};
