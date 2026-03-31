@@ -3,9 +3,15 @@
 #include <unordered_map>
 #include <tuple>
 #include <functional>
+#include <cstdint>
+#include <iostream>
+#include <variant>
+#include <format>
+#include <filesystem>
 
-#include <win32_helper.hpp>
 #include <constexpr_map.hpp>
+#include <cpp_helper.hpp>
+#include <map_file.hpp>
 
 namespace spirv_parser {
 
@@ -810,7 +816,7 @@ struct module_logic {
 };
 
 auto open_spirv_file(std::filesystem::path path) {
-    auto file_mapping = win32_helper::map_file(path);
+    auto file_mapping = map_file::map_file(path);
     auto spirv_code = std::span{reinterpret_cast<word*>(file_mapping.data()), file_mapping.size()/sizeof(word)};
 
     auto m = spirv_parser::module_binary{ spirv_code };
