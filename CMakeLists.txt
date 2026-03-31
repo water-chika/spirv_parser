@@ -1,18 +1,27 @@
 cmake_minimum_required(VERSION 3.20)
 
-project(SPIRV-Parser)
+project(spirv_parser)
 
-add_executable(SPIRV-Parser
-    spirv_parser.cpp
+add_library(spirv_parser INTERFACE
+    spirv_parser.hpp
 )
 
-target_link_libraries(SPIRV-Parser PUBLIC
+target_link_libraries(spirv_parser INTERFACE
     SPIRV-Headers
     cpp_helper
     constexpr_map
     map_file
 )
 
-target_compile_features(SPIRV-Parser PUBLIC cxx_std_20)
+target_compile_features(spirv_parser INTERFACE cxx_std_20)
 
-target_compile_definitions(SPIRV-Parser PUBLIC SPV_ENABLE_UTILITY_CODE)
+target_compile_definitions(spirv_parser INTERFACE SPV_ENABLE_UTILITY_CODE)
+
+add_executable(spirv_parser_test
+    spirv_parser.cpp
+)
+
+target_link_libraries(spirv_parser_test PUBLIC
+    spirv_parser
+)
+
