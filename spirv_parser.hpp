@@ -163,6 +163,8 @@ struct extension_instruction_encodes_struct<extension::khr_cooperative_matrix> {
 
 constexpr auto instruction_encodes = cpp_helper::merge(extension_instruction_encodes<extension::khr_cooperative_matrix>,
     std::to_array<instruction_encode>({
+    {spv::OpNop},
+    {spv::OpUndef, instruction_argument::id, instruction_argument::id},
     {spv::OpCapability, instruction_argument::capability},
     {spv::OpExtInstImport, instruction_argument::id, instruction_argument::literal_string},
     {spv::OpMemoryModel, instruction_argument::addressing_model, instruction_argument::memory_model},
@@ -218,6 +220,7 @@ constexpr auto instruction_encodes = cpp_helper::merge(extension_instruction_enc
     {spv::OpFAdd, instruction_argument::id, instruction_argument::id, instruction_argument::id, instruction_argument::id},
     {spv::OpFSub, instruction_argument::id, instruction_argument::id, instruction_argument::id, instruction_argument::id},
     {spv::OpFMul, instruction_argument::id, instruction_argument::id, instruction_argument::id, instruction_argument::id},
+    {spv::OpFDiv, instruction_argument::id, instruction_argument::id, instruction_argument::id, instruction_argument::id},
     {spv::OpDot, instruction_argument::id, instruction_argument::id, instruction_argument::id, instruction_argument::id},
     {spv::OpSDot, instruction_argument::id, instruction_argument::id, instruction_argument::id, instruction_argument::id, instruction_argument::optional_literal_number},
     {spv::OpVectorTimesScalar, instruction_argument::id, instruction_argument::id, instruction_argument::id, instruction_argument::id},
@@ -268,7 +271,13 @@ constexpr auto instruction_encodes = cpp_helper::merge(extension_instruction_enc
     {spv::OpSourceExtension, instruction_argument::literal_string},
     {spv::OpFunctionCall, instruction_argument::id, instruction_argument::id, instruction_argument::id, instruction_argument::ids},
     {spv::OpFunctionParameter, instruction_argument::id, instruction_argument::id},
+
     {spv::OpGroupNonUniformFAdd, instruction_argument::id, instruction_argument::id, instruction_argument::id, instruction_argument::group_operation, instruction_argument::id, instruction_argument::optional_id},
+    {spv::OpGroupNonUniformFMax, instruction_argument::id, instruction_argument::id, instruction_argument::id,
+        instruction_argument::group_operation, instruction_argument::id, instruction_argument::optional_id},
+    {spv::OpGroupNonUniformAll, instruction_argument::id, instruction_argument::id, instruction_argument::id,
+        instruction_argument::id},
+
     {spv::OpBitcast, instruction_argument::id, instruction_argument::id, instruction_argument::id},
     {spv::OpCopyLogical, instruction_argument::id, instruction_argument::id, instruction_argument::id},
     {spv::OpBitFieldUExtract, instruction_argument::id, instruction_argument::id, instruction_argument::id, instruction_argument::id, instruction_argument::id},
@@ -281,6 +290,7 @@ constexpr auto instruction_encodes = cpp_helper::merge(extension_instruction_enc
     {spv::OpFUnordNotEqual, instruction_argument::id, instruction_argument::id, instruction_argument::id, instruction_argument::id},
     {spv::OpFOrdEqual, instruction_argument::id, instruction_argument::id, instruction_argument::id, instruction_argument::id},
     {spv::OpFOrdLessThanEqual, instruction_argument::id, instruction_argument::id, instruction_argument::id, instruction_argument::id},
+    {spv::OpFOrdGreaterThan, instruction_argument::id, instruction_argument::id, instruction_argument::id, instruction_argument::id},
 
     {spv::OpDPdx, instruction_argument::id, instruction_argument::id, instruction_argument::id},
     {spv::OpDPdy, instruction_argument::id, instruction_argument::id, instruction_argument::id},
