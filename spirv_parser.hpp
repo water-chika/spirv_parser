@@ -128,12 +128,15 @@ struct instruction_encode {
     constexpr instruction_encode(spv::Op op,
         instruction_argument arg0 = instruction_argument::none, instruction_argument arg1 = instruction_argument::none,
         instruction_argument arg2 = instruction_argument::none, instruction_argument arg3 = instruction_argument::none,
-        instruction_argument arg4 = instruction_argument::none, instruction_argument arg5 = instruction_argument::none)
+        instruction_argument arg4 = instruction_argument::none, instruction_argument arg5 = instruction_argument::none,
+        instruction_argument arg6 = instruction_argument::none, instruction_argument arg7 = instruction_argument::none,
+        instruction_argument arg8 = instruction_argument::none, instruction_argument arg9 = instruction_argument::none
+        )
     : op{op},
-      args{arg0, arg1, arg2, arg3, arg4, arg5}
+      args{arg0, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9}
     {}
     spv::Op op;
-    instruction_argument args[6];
+    instruction_argument args[10];
 };
 
 enum class extension {
@@ -170,11 +173,21 @@ constexpr auto instruction_encodes = cpp_helper::merge(extension_instruction_enc
     {spv::OpMemberName, instruction_argument::id, instruction_argument::literal_number, instruction_argument::literal_string},
     {spv::OpDecorate, instruction_argument::id, instruction_argument::decoration, instruction_argument::literals},
     {spv::OpMemberDecorate, instruction_argument::id, instruction_argument::literal_number, instruction_argument::decoration, instruction_argument::literals},
+
     {spv::OpTypeVoid, instruction_argument::id},
     {spv::OpTypeFunction, instruction_argument::id, instruction_argument::id, instruction_argument::ids},
     {spv::OpTypeInt, instruction_argument::id, instruction_argument::literal_number, instruction_argument::literal_number},
     {spv::OpTypePointer, instruction_argument::id, instruction_argument::storage_class, instruction_argument::id},
     {spv::OpTypeVector, instruction_argument::id, instruction_argument::id, instruction_argument::literal_number},
+    {spv::OpTypeMatrix, instruction_argument::id, instruction_argument::id, instruction_argument::literal_number},
+    {spv::OpTypeImage, instruction_argument::id, instruction_argument::id,
+        instruction_argument::literal_number, instruction_argument::literal_number,
+        instruction_argument::literal_number, instruction_argument::literal_number,
+        instruction_argument::literal_number, instruction_argument::literal_number,
+        instruction_argument::optional_literal_number
+    },
+    {spv::OpTypeSampledImage, instruction_argument::id, instruction_argument::id},
+
     {spv::OpVariable, instruction_argument::id, instruction_argument::id, instruction_argument::storage_class, instruction_argument::ids},
     {spv::OpConstant, instruction_argument::id, instruction_argument::id, instruction_argument::literal_number},
     {spv::OpConstantFalse, instruction_argument::id, instruction_argument::id},
@@ -208,6 +221,9 @@ constexpr auto instruction_encodes = cpp_helper::merge(extension_instruction_enc
     {spv::OpDot, instruction_argument::id, instruction_argument::id, instruction_argument::id, instruction_argument::id},
     {spv::OpSDot, instruction_argument::id, instruction_argument::id, instruction_argument::id, instruction_argument::id, instruction_argument::optional_literal_number},
     {spv::OpVectorTimesScalar, instruction_argument::id, instruction_argument::id, instruction_argument::id, instruction_argument::id},
+    {spv::OpMatrixTimesScalar, instruction_argument::id, instruction_argument::id, instruction_argument::id, instruction_argument::id},
+    {spv::OpMatrixTimesVector, instruction_argument::id, instruction_argument::id, instruction_argument::id, instruction_argument::id},
+    {spv::OpMatrixTimesMatrix, instruction_argument::id, instruction_argument::id, instruction_argument::id, instruction_argument::id},
 
     {spv::OpShiftLeftLogical, instruction_argument::id, instruction_argument::id, instruction_argument::id, instruction_argument::id},
     {spv::OpShiftRightLogical, instruction_argument::id, instruction_argument::id, instruction_argument::id, instruction_argument::id},
@@ -264,6 +280,15 @@ constexpr auto instruction_encodes = cpp_helper::merge(extension_instruction_enc
     {spv::OpFUnordEqual, instruction_argument::id, instruction_argument::id, instruction_argument::id, instruction_argument::id},
     {spv::OpFUnordNotEqual, instruction_argument::id, instruction_argument::id, instruction_argument::id, instruction_argument::id},
     {spv::OpFOrdEqual, instruction_argument::id, instruction_argument::id, instruction_argument::id, instruction_argument::id},
+    {spv::OpFOrdLessThanEqual, instruction_argument::id, instruction_argument::id, instruction_argument::id, instruction_argument::id},
+
+    {spv::OpDPdx, instruction_argument::id, instruction_argument::id, instruction_argument::id},
+    {spv::OpDPdy, instruction_argument::id, instruction_argument::id, instruction_argument::id},
+
+    {spv::OpImageSampleImplicitLod, instruction_argument::id, instruction_argument::id, instruction_argument::id,
+        instruction_argument::id, instruction_argument::optional_literal_number, instruction_argument::ids},
+
+    {spv::OpUnreachable},
     })
 );
 constexpr auto get_instruction_encode(spv::Op op) {

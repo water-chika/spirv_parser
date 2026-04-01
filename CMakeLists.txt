@@ -6,6 +6,8 @@ add_library(spirv_parser INTERFACE
     spirv_parser.hpp
 )
 
+target_include_directories(spirv_parser INTERFACE ${CMAKE_CURRENT_SOURCE_DIR})
+
 target_link_libraries(spirv_parser INTERFACE
     SPIRV-Headers
     cpp_helper
