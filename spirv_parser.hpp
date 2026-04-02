@@ -228,6 +228,7 @@ constexpr auto instruction_encodes = cpp_helper::merge(extension_instruction_enc
     {spv::OpMatrixTimesVector, instruction_argument::id, instruction_argument::id, instruction_argument::id, instruction_argument::id},
     {spv::OpMatrixTimesMatrix, instruction_argument::id, instruction_argument::id, instruction_argument::id, instruction_argument::id},
 
+    {spv::OpAll, instruction_argument::id, instruction_argument::id, instruction_argument::id},
     {spv::OpShiftLeftLogical, instruction_argument::id, instruction_argument::id, instruction_argument::id, instruction_argument::id},
     {spv::OpShiftRightLogical, instruction_argument::id, instruction_argument::id, instruction_argument::id, instruction_argument::id},
     {spv::OpShiftRightArithmetic, instruction_argument::id, instruction_argument::id, instruction_argument::id, instruction_argument::id},
@@ -277,6 +278,8 @@ constexpr auto instruction_encodes = cpp_helper::merge(extension_instruction_enc
         instruction_argument::group_operation, instruction_argument::id, instruction_argument::optional_id},
     {spv::OpGroupNonUniformAll, instruction_argument::id, instruction_argument::id, instruction_argument::id,
         instruction_argument::id},
+    {spv::OpGroupNonUniformShuffleXor, instruction_argument::id, instruction_argument::id, instruction_argument::id,
+        instruction_argument::id, instruction_argument::id},
 
     {spv::OpBitcast, instruction_argument::id, instruction_argument::id, instruction_argument::id},
     {spv::OpCopyLogical, instruction_argument::id, instruction_argument::id, instruction_argument::id},
