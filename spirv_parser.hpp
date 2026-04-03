@@ -216,6 +216,7 @@ constexpr auto instruction_encodes = cpp_helper::merge(extension_instruction_enc
     {spv::OpIAdd, instruction_argument::id, instruction_argument::id, instruction_argument::id, instruction_argument::id},
     {spv::OpISub, instruction_argument::id, instruction_argument::id, instruction_argument::id, instruction_argument::id},
     {spv::OpUMod, instruction_argument::id, instruction_argument::id, instruction_argument::id, instruction_argument::id},
+    {spv::OpUMulExtended, instruction_argument::id, instruction_argument::id, instruction_argument::id, instruction_argument::id},
     {spv::OpUDiv, instruction_argument::id, instruction_argument::id, instruction_argument::id, instruction_argument::id},
     {spv::OpFAdd, instruction_argument::id, instruction_argument::id, instruction_argument::id, instruction_argument::id},
     {spv::OpFSub, instruction_argument::id, instruction_argument::id, instruction_argument::id, instruction_argument::id},
