@@ -22,6 +22,13 @@ struct id {
     word value;
 };
 
+auto operator<=>(const spirv_parser::id& lhs, const spirv_parser::id& rhs) {
+    return lhs.value <=> rhs.value;
+}
+auto operator==(const spirv_parser::id& lhs, const spirv_parser::id& rhs) {
+    return lhs.value == rhs.value;
+}
+
 std::ostream& operator<<(std::ostream& out, id id) {
     return out << "%" << id.value;
 }
@@ -173,8 +180,11 @@ constexpr auto instruction_encodes = cpp_helper::merge(extension_instruction_enc
     {spv::OpSource, instruction_argument::source_language, instruction_argument::literal_number, instruction_argument::optional_id, instruction_argument::optional_literal_string},
     {spv::OpName, instruction_argument::id, instruction_argument::literal_string},
     {spv::OpMemberName, instruction_argument::id, instruction_argument::literal_number, instruction_argument::literal_string},
+    {spv::OpString, instruction_argument::id, instruction_argument::literal_string},
+    {spv::OpLine, instruction_argument::id, instruction_argument::literal_number, instruction_argument::literal_number},
     {spv::OpDecorate, instruction_argument::id, instruction_argument::decoration, instruction_argument::literals},
     {spv::OpMemberDecorate, instruction_argument::id, instruction_argument::literal_number, instruction_argument::decoration, instruction_argument::literals},
+    {spv::OpModuleProcessed, instruction_argument::literal_number},
 
     {spv::OpTypeVoid, instruction_argument::id},
     {spv::OpTypeFunction, instruction_argument::id, instruction_argument::id, instruction_argument::ids},
@@ -209,6 +219,7 @@ constexpr auto instruction_encodes = cpp_helper::merge(extension_instruction_enc
     {spv::OpULessThanEqual, instruction_argument::id, instruction_argument::id, instruction_argument::id, instruction_argument::id},
     {spv::OpUGreaterThan, instruction_argument::id, instruction_argument::id, instruction_argument::id, instruction_argument::id},
     {spv::OpUGreaterThanEqual, instruction_argument::id, instruction_argument::id, instruction_argument::id, instruction_argument::id},
+    {spv::OpSLessThan, instruction_argument::id, instruction_argument::id, instruction_argument::id, instruction_argument::id},
     {spv::OpSGreaterThan, instruction_argument::id, instruction_argument::id, instruction_argument::id, instruction_argument::id},
     {spv::OpSGreaterThanEqual, instruction_argument::id, instruction_argument::id, instruction_argument::id, instruction_argument::id},
     {spv::OpBranchConditional, instruction_argument::id, instruction_argument::id, instruction_argument::id, instruction_argument::literals},
@@ -225,10 +236,12 @@ constexpr auto instruction_encodes = cpp_helper::merge(extension_instruction_enc
     {spv::OpDot, instruction_argument::id, instruction_argument::id, instruction_argument::id, instruction_argument::id},
     {spv::OpSDot, instruction_argument::id, instruction_argument::id, instruction_argument::id, instruction_argument::id, instruction_argument::optional_literal_number},
     {spv::OpVectorTimesScalar, instruction_argument::id, instruction_argument::id, instruction_argument::id, instruction_argument::id},
+    {spv::OpVectorTimesMatrix, instruction_argument::id, instruction_argument::id, instruction_argument::id, instruction_argument::id},
     {spv::OpMatrixTimesScalar, instruction_argument::id, instruction_argument::id, instruction_argument::id, instruction_argument::id},
     {spv::OpMatrixTimesVector, instruction_argument::id, instruction_argument::id, instruction_argument::id, instruction_argument::id},
     {spv::OpMatrixTimesMatrix, instruction_argument::id, instruction_argument::id, instruction_argument::id, instruction_argument::id},
 
+    {spv::OpAny, instruction_argument::id, instruction_argument::id, instruction_argument::id},
     {spv::OpAll, instruction_argument::id, instruction_argument::id, instruction_argument::id},
     {spv::OpShiftLeftLogical, instruction_argument::id, instruction_argument::id, instruction_argument::id, instruction_argument::id},
     {spv::OpShiftRightLogical, instruction_argument::id, instruction_argument::id, instruction_argument::id, instruction_argument::id},
@@ -284,6 +297,7 @@ constexpr auto instruction_encodes = cpp_helper::merge(extension_instruction_enc
 
     {spv::OpBitcast, instruction_argument::id, instruction_argument::id, instruction_argument::id},
     {spv::OpCopyLogical, instruction_argument::id, instruction_argument::id, instruction_argument::id},
+    {spv::OpBitFieldInsert, instruction_argument::id, instruction_argument::id, instruction_argument::id, instruction_argument::id, instruction_argument::id},
     {spv::OpBitFieldUExtract, instruction_argument::id, instruction_argument::id, instruction_argument::id, instruction_argument::id, instruction_argument::id},
     {spv::OpBitFieldSExtract, instruction_argument::id, instruction_argument::id, instruction_argument::id, instruction_argument::id, instruction_argument::id},
     {spv::OpVectorShuffle, instruction_argument::id, instruction_argument::id, instruction_argument::id, instruction_argument::id, instruction_argument::literals},
@@ -293,14 +307,23 @@ constexpr auto instruction_encodes = cpp_helper::merge(extension_instruction_enc
     {spv::OpFUnordEqual, instruction_argument::id, instruction_argument::id, instruction_argument::id, instruction_argument::id},
     {spv::OpFUnordNotEqual, instruction_argument::id, instruction_argument::id, instruction_argument::id, instruction_argument::id},
     {spv::OpFOrdEqual, instruction_argument::id, instruction_argument::id, instruction_argument::id, instruction_argument::id},
+    {spv::OpFOrdLessThan, instruction_argument::id, instruction_argument::id, instruction_argument::id, instruction_argument::id},
     {spv::OpFOrdLessThanEqual, instruction_argument::id, instruction_argument::id, instruction_argument::id, instruction_argument::id},
     {spv::OpFOrdGreaterThan, instruction_argument::id, instruction_argument::id, instruction_argument::id, instruction_argument::id},
+    {spv::OpFOrdGreaterThanEqual, instruction_argument::id, instruction_argument::id, instruction_argument::id, instruction_argument::id},
 
     {spv::OpDPdx, instruction_argument::id, instruction_argument::id, instruction_argument::id},
     {spv::OpDPdy, instruction_argument::id, instruction_argument::id, instruction_argument::id},
 
+    {spv::OpImage, instruction_argument::id, instruction_argument::id, instruction_argument::id},
+    {spv::OpImageFetch, instruction_argument::id, instruction_argument::id, instruction_argument::id,
+        instruction_argument::id, instruction_argument::optional_literal_number, instruction_argument::ids},
     {spv::OpImageSampleImplicitLod, instruction_argument::id, instruction_argument::id, instruction_argument::id,
         instruction_argument::id, instruction_argument::optional_literal_number, instruction_argument::ids},
+
+    {spv::OpReadClockKHR, instruction_argument::id, instruction_argument::id, instruction_argument::id},
+    {spv::OpVectorExtractDynamic, instruction_argument::id, instruction_argument::id, instruction_argument::id, instruction_argument::id},
+    {spv::OpCopyObject, instruction_argument::id, instruction_argument::id, instruction_argument::id},
 
     {spv::OpUnreachable},
     })
@@ -867,3 +890,12 @@ auto open_spirv_file(std::filesystem::path path) {
 }
 
 }
+
+template<>
+struct std::hash<spirv_parser::id> {
+    auto operator()(const spirv_parser::id& id) const {
+        return std::hash<spirv_parser::word>{}(id.value);
+    }
+};
+
+
